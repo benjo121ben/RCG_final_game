@@ -32,14 +32,14 @@
 #include <any>
 #include <set>
 #include <unordered_map>
-#include "src_ben/GameObject.h"
+#include "GameObject.h"
+#include "Mesh.h"
+#include "Vertex.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
-bool first = true;
 
-static auto startGameTime = std::chrono::high_resolution_clock::now();
-static auto lastFrameTime = std::chrono::high_resolution_clock::now();
+
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -51,46 +51,6 @@ const std::vector<const char*> validationLayers = {
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
-
-
-template <typename T>
-void println(std::string str,T any) {
-    std::cout << str << " " << any << "\n";
-}
-
-template <typename T>
-void println(T str) {
-    std::cout << str << "\n";
-}
-
-void println(glm::mat4 mat) {
-    std::cout << glm::to_string(mat) << "\n";
-}
-
-void println(std::string str, glm::mat4 mat) {
-    std::cout << str << " " << glm::to_string(mat) << "\n";
-}
-
-template <typename T>
-void print(std::string str, T any) {
-    std::cout << str << " " << any;
-}
-
-template <typename T>
-void print(T str) {
-    std::cout << str;
-}
-
-
-
-
-template <typename T>
-void partheader(T header) {
-    println("\n--------");
-    println(header);
-    println("--------");
-}
-
 
 
 #ifdef NDEBUG
@@ -130,55 +90,6 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 normal;
-    glm::vec2 texCoord;
-
-    static VkVertexInputBindingDescription getBindingDescription() {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, normal);
-
-        attributeDescriptions[2].binding = 1;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-        return attributeDescriptions;
-    }
-
-    bool operator==(const Vertex& other) const {
-        return pos == other.pos && normal == other.normal && texCoord == other.texCoord;
-    }
-};
-
-struct Mesh {
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
-};
-
 namespace std {
     template<> struct hash<Vertex> {
         size_t operator()(Vertex const& vertex) const {
@@ -194,32 +105,21 @@ struct UniformBufferObject {
     alignas(16) glm::vec3 lightPos;
 };
 
-class HelloTriangleApplication {
+class Renderer {
 public:
-    std::vector<GameObject> gameObjectList;
     std::vector<Mesh> meshList;
     std::vector<std::string> model_paths;
     std::vector<std::string> texture_paths;
-
-
-    void run() {
-        initWindow();
-        initVulkan();
-        lastFrameTime = std::chrono::high_resolution_clock::now();
-        startGameTime = std::chrono::high_resolution_clock::now();
-        mainLoop();
-        cleanup();
-    }
+    GLFWwindow* window;
+    VkDevice device;
 
 private:
-    GLFWwindow* window;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkSurfaceKHR surface;
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice device;
 
     VkQueue graphicsQueue;
     VkQueue presentQueue;
@@ -258,111 +158,98 @@ private:
     uint32_t currentFrame = 0;
 
     bool framebufferResized = false;
+
 public:
 
-    GameObject& InstantiateGameObjectBeforeStart(uint32_t textureIndex, uint32_t modelIndex, const glm::vec3& pos){
-        GameObject& obj = gameObjectList.emplace_back(GameObject(textureIndex, modelIndex, pos, glm::vec3(1,1,1), glm::vec3(0,0,0)));
-        return obj;
+    void init() {
+        initWindow();
+        initVulkan();
     }
 
-    GameObject& InstantiateGameObject(uint32_t textureIndex, uint32_t modelIndex, const glm::vec3& pos){
-        GameObject& obj = gameObjectList.emplace_back(GameObject(textureIndex, modelIndex, pos, glm::vec3(1,1,1), glm::vec3(0,0,0)));
-        createUniformBuffers(&obj);
-        createDescriptorPool(&obj);
-        createDescriptorSets(&obj);
-        return obj;
-    }
-
-    float deltaTime(){
-        return std::chrono::duration<float, std::chrono::seconds::period>(lastFrameTime - std::chrono::high_resolution_clock::now()).count();
-    }
-
-
-private:
-    void initWindow() {
-        glfwInit();
-
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-    }
-
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-        app->framebufferResized = true;
-    }
-
-    void initVulkan() {
-        createInstance();
-        setupDebugMessenger();
-        createSurface();
-        pickPhysicalDevice();
-        createLogicalDevice();
-        createSwapChain();
-        createImageViews();
-        createRenderPass();
-        createDescriptorSetLayout();
-        createGraphicsPipeline();
-        createCommandPool();
-        createDepthResources();
-        createFramebuffers();
-        textureImages.resize(texture_paths.size());
-        textureImageViews.resize(texture_paths.size());
-        textureSamplers.resize(texture_paths.size());
-        textureImageMemories.resize(texture_paths.size());
-        for (int pathNr {0}; pathNr < texture_paths.size(); pathNr++){
-            createTextureImage(pathNr);
-            createTextureImageView(pathNr);
-            createTextureSampler(pathNr);
+    void createRenderInfo(RenderInfo* renderInfo, uint32_t textureIndex, uint32_t modelIndex) {
+        if (textureIndex < 0 || modelIndex < 0 || textureIndex >= texture_paths.size() || modelIndex >= model_paths.size()){
+            throw std::runtime_error("creating RenderInfo with invalid model or texture");
         }
-        for (int pathNr {0}; pathNr < model_paths.size(); pathNr++){
-            loadMesh(pathNr);
-            createVertexBuffer(&meshList[pathNr]);
-            createIndexBuffer(&meshList[pathNr]);
-        }
-        for (auto& model : gameObjectList){
-            createUniformBuffers(&model);
-            createDescriptorPool(&model);
-            createDescriptorSets(&model);
-        }
-        createCommandBuffers();
-        createSyncObjects();
+        renderInfo->textureIndex = textureIndex;
+        renderInfo->modelIndex = modelIndex;
+        createUniformBuffers(renderInfo);
+        createDescriptorPool(renderInfo);
+        createDescriptorSets(renderInfo);
     }
 
-
-
-
-    void mainLoop() {
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
-
-            if (std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::high_resolution_clock::now() - startGameTime).count() > 4.0f && first) {
-                InstantiateGameObject(1, 1, glm::vec3(0,1,0));
-                gameObjectList[gameObjectList.size()-1].scale = glm::vec3(0.3f,0.3f,0.3f);
-                println("ROTATION: ", gameObjectList[gameObjectList.size()-1].getModelMatrix());
-                first = false;
-            }
-            drawFrame();
+    void cleanupRenderInfo(RenderInfo* renderInfo) const{
+        if (!renderInfo) return;
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroyBuffer(device, renderInfo->uniformBuffers[i], nullptr);
+            vkFreeMemory(device, renderInfo->uniformBuffersMemory[i], nullptr);
         }
-        vkDeviceWaitIdle(device);
+        vkDestroyDescriptorPool(device, renderInfo->descriptorPool, nullptr);
     }
 
-    void cleanupSwapChain() {
-        vkDestroyImageView(device, depthImageView, nullptr);
-        vkDestroyImage(device, depthImage, nullptr);
-        vkFreeMemory(device, depthImageMemory, nullptr);
+    void drawFrame(const std::vector<GameObject>& gameObjectList) {
+        vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
-        for (auto framebuffer : swapChainFramebuffers) {
-            vkDestroyFramebuffer(device, framebuffer, nullptr);
+        uint32_t imageIndex;
+        VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            recreateSwapChain();
+            return;
+        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+            throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        for (auto imageView : swapChainImageViews) {
-            vkDestroyImageView(device, imageView, nullptr);
+        for(const auto& obj : gameObjectList){
+            updateUniformBuffer(obj, currentFrame);
         }
 
-        vkDestroySwapchainKHR(device, swapChain, nullptr);
+        vkResetFences(device, 1, &inFlightFences[currentFrame]);
+
+        vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, gameObjectList);
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
+
+        VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to submit draw command buffer!");
+        }
+
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+
+        VkSwapchainKHR swapChains[] = {swapChain};
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapChains;
+
+        presentInfo.pImageIndices = &imageIndex;
+
+        result = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
+            framebufferResized = false;
+            recreateSwapChain();
+        } else if (result != VK_SUCCESS) {
+            throw std::runtime_error("failed to present swap chain image!");
+        }
+
+        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     void cleanup() {
@@ -371,15 +258,6 @@ private:
         vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
-
-        for(auto& gameObject : gameObjectList) {
-            for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-                vkDestroyBuffer(device, gameObject.uniformBuffers[i], nullptr);
-                vkFreeMemory(device, gameObject.uniformBuffersMemory[i], nullptr);
-            }
-            vkDestroyDescriptorPool(device, gameObject.descriptorPool, nullptr);
-        }
-
 
 
         for(const auto& sampler : textureSamplers) {
@@ -428,6 +306,70 @@ private:
         glfwDestroyWindow(window);
 
         glfwTerminate();
+    }
+private:
+    void initWindow() {
+        glfwInit();
+
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+        glfwSetWindowUserPointer(window, this);
+        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+    }
+
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+        auto app = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window));
+        app->framebufferResized = true;
+    }
+
+    void initVulkan() {
+        createInstance();
+        setupDebugMessenger();
+        createSurface();
+        pickPhysicalDevice();
+        createLogicalDevice();
+        createSwapChain();
+        createImageViews();
+        createRenderPass();
+        createDescriptorSetLayout();
+        createGraphicsPipeline();
+        createCommandPool();
+        createDepthResources();
+        createFramebuffers();
+        textureImages.resize(texture_paths.size());
+        textureImageViews.resize(texture_paths.size());
+        textureSamplers.resize(texture_paths.size());
+        textureImageMemories.resize(texture_paths.size());
+        for (int pathNr {0}; pathNr < texture_paths.size(); pathNr++){
+            createTextureImage(pathNr);
+            createTextureImageView(pathNr);
+            createTextureSampler(pathNr);
+        }
+        for (int pathNr {0}; pathNr < model_paths.size(); pathNr++){
+            loadMesh(pathNr);
+            createVertexBuffer(&meshList[pathNr]);
+            createIndexBuffer(&meshList[pathNr]);
+        }
+        createCommandBuffers();
+        createSyncObjects();
+    }
+
+
+    void cleanupSwapChain() {
+        vkDestroyImageView(device, depthImageView, nullptr);
+        vkDestroyImage(device, depthImage, nullptr);
+        vkFreeMemory(device, depthImageMemory, nullptr);
+
+        for (auto framebuffer : swapChainFramebuffers) {
+            vkDestroyFramebuffer(device, framebuffer, nullptr);
+        }
+
+        for (auto imageView : swapChainImageViews) {
+            vkDestroyImageView(device, imageView, nullptr);
+        }
+
+        vkDestroySwapchainKHR(device, swapChain, nullptr);
     }
 
     void recreateSwapChain() {
@@ -1201,21 +1143,21 @@ private:
         vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
-    void createUniformBuffers(GameObject* object) {
+    void createUniformBuffers(RenderInfo* renderInfo) {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-        object->uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-        object->uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-        object->uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+        renderInfo->uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        renderInfo->uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        renderInfo->uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, object->uniformBuffers[i], object->uniformBuffersMemory[i]);
+            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, renderInfo->uniformBuffers[i], renderInfo->uniformBuffersMemory[i]);
 
-            vkMapMemory(device, object->uniformBuffersMemory[i], 0, bufferSize, 0, &(object->uniformBuffersMapped[i]));
+            vkMapMemory(device, renderInfo->uniformBuffersMemory[i], 0, bufferSize, 0, &(renderInfo->uniformBuffersMapped[i]));
         }
     }
 
-    void createDescriptorPool(GameObject* object) {
+    void createDescriptorPool(RenderInfo* renderInfo) {
         std::array<VkDescriptorPoolSize, 2> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
@@ -1228,50 +1170,50 @@ private:
         poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = static_cast<uint32_t>(6);
 
-        if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &(object->descriptorPool)) != VK_SUCCESS) {
+        if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &(renderInfo->descriptorPool)) != VK_SUCCESS) {
             throw std::runtime_error("failed to create descriptor pool!");
         }
     }
 
-    void createDescriptorSets(GameObject* object) {
+    void createDescriptorSets(RenderInfo* renderInfo) {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, uboDescriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = object->descriptorPool;
+        allocInfo.descriptorPool = renderInfo->descriptorPool;
         allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         allocInfo.pSetLayouts = layouts.data();
 
-        object->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-        if (vkAllocateDescriptorSets(device, &allocInfo, object->descriptorSets.data()) != VK_SUCCESS) {
+        renderInfo->descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+        if (vkAllocateDescriptorSets(device, &allocInfo, renderInfo->descriptorSets.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets 1!");
         }
 
         std::vector<VkDescriptorSetLayout> layouts2(MAX_FRAMES_IN_FLIGHT, samplerDescriptorSetLayout);
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = object->descriptorPool;
+        allocInfo.descriptorPool = renderInfo->descriptorPool;
         allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
         allocInfo.pSetLayouts = layouts2.data();
 
-        object->descriptorSets_benji.resize(MAX_FRAMES_IN_FLIGHT);
-        if (vkAllocateDescriptorSets(device, &allocInfo, object->descriptorSets_benji.data()) != VK_SUCCESS) {
+        renderInfo->descriptorSets_benji.resize(MAX_FRAMES_IN_FLIGHT);
+        if (vkAllocateDescriptorSets(device, &allocInfo, renderInfo->descriptorSets_benji.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets 2!");
         }
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = object->uniformBuffers[i];
+            bufferInfo.buffer = renderInfo->uniformBuffers[i];
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureImageViews[object->textureIndex];
-            imageInfo.sampler = textureSamplers[object->textureIndex];
+            imageInfo.imageView = textureImageViews[renderInfo->textureIndex];
+            imageInfo.sampler = textureSamplers[renderInfo->textureIndex];
 
 
             std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = object->descriptorSets[i];
+            descriptorWrites[0].dstSet = renderInfo->descriptorSets[i];
             descriptorWrites[0].dstBinding = 0;
             descriptorWrites[0].dstArrayElement = 0;
             descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1279,7 +1221,7 @@ private:
             descriptorWrites[0].pBufferInfo = &bufferInfo;
 
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = object->descriptorSets_benji[i];
+            descriptorWrites[1].dstSet = renderInfo->descriptorSets_benji[i];
             descriptorWrites[1].dstBinding = 0;
             descriptorWrites[1].dstArrayElement = 0;
             descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1401,7 +1343,7 @@ private:
         }
     }
 
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const std::vector<GameObject>& gameObjectList) {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -1442,20 +1384,22 @@ private:
             scissor.extent = swapChainExtent;
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-            for(uint32_t gameObjectNr{0}; gameObjectNr < gameObjectList.size(); gameObjectNr++){
-                VkBuffer vertexBuffers[] = {meshList[gameObjectList[gameObjectNr].modelIndex].vertexBuffer};
+            for(const auto& gameObj : gameObjectList){
+                if(!gameObj.renderInfo) continue;
+                RenderInfo* renderInfo = gameObj.renderInfo;
+                VkBuffer vertexBuffers[] = {meshList[renderInfo->modelIndex].vertexBuffer};
                 VkDeviceSize offsets[] = {0};
                 vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
                 vkCmdBindVertexBuffers(commandBuffer, 1, 1, vertexBuffers, offsets);
 
-                vkCmdBindIndexBuffer(commandBuffer, meshList[gameObjectList[gameObjectNr].modelIndex].indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(commandBuffer, meshList[renderInfo->modelIndex].indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
                 std::array<VkDescriptorSet, 2> setsToBind{
-                        gameObjectList[gameObjectNr].descriptorSets[currentFrame], gameObjectList[gameObjectNr].descriptorSets_benji[currentFrame]
+                        renderInfo->descriptorSets[currentFrame], renderInfo->descriptorSets_benji[currentFrame]
                 };
                 vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, setsToBind.data(), 0, nullptr);
 
-                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(meshList[gameObjectList[gameObjectNr].modelIndex].indices.size()), 1, 0, 0, 0);
+                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(meshList[renderInfo->modelIndex].indices.size()), 1, 0, 0, 0);
             }
 
 
@@ -1492,8 +1436,9 @@ private:
         }
     }
 
-    void updateUniformBuffer(uint32_t gameObjectNumber, uint32_t currentImage) {
+    void updateUniformBuffer(const GameObject& obj, uint32_t currentImage) {
         //starts a timer
+        if(!obj.renderInfo || obj.is_static()) return;
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
@@ -1503,7 +1448,7 @@ private:
 
         //creates empty uniform buffer
         UniformBufferObject ubo{};
-        ubo.model = gameObjectList[gameObjectNumber].getModelMatrix();
+        ubo.model = obj.getModelMatrix();
         //creates a view matrix for the camera
         ubo.view = glm::lookAt(glm::vec3(1.5f, 3.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         //creates the projection matrix
@@ -1514,74 +1459,7 @@ private:
 
 
         //I'm guessing this sends the data to the graphics card
-        memcpy(gameObjectList[gameObjectNumber].uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
-    }
-
-    void drawFrame() {
-        vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-
-        uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            recreateSwapChain();
-            return;
-        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-            throw std::runtime_error("failed to acquire swap chain image!");
-        }
-
-        for(int gameObjectNr {0}; gameObjectNr < gameObjectList.size(); gameObjectNr++){
-            updateUniformBuffer(gameObjectNr, currentFrame);
-        }
-
-        vkResetFences(device, 1, &inFlightFences[currentFrame]);
-
-        vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-        recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
-        lastFrameTime = std::chrono::high_resolution_clock::now();
-
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-        VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
-        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = waitSemaphores;
-        submitInfo.pWaitDstStageMask = waitStages;
-
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
-
-        VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
-
-        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to submit draw command buffer!");
-        }
-
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-        presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = signalSemaphores;
-
-        VkSwapchainKHR swapChains[] = {swapChain};
-        presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = swapChains;
-
-        presentInfo.pImageIndices = &imageIndex;
-
-        result = vkQueuePresentKHR(presentQueue, &presentInfo);
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
-            framebufferResized = false;
-            recreateSwapChain();
-        } else if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to present swap chain image!");
-        }
-
-        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        memcpy(obj.renderInfo->uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
     }
 
     VkShaderModule createShaderModule(const std::vector<char>& code) {

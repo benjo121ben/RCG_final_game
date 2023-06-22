@@ -15,26 +15,29 @@
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
+#include "glm/gtx/euler_angles.hpp"
+#include "RenderInfo.h"
 
 struct GameObject{
+    glm::vec3 position = glm::vec3(0);
+    glm::vec3 scale = glm::vec3(1);
+    RenderInfo* renderInfo = nullptr;
+
 private:
-    glm::mat4 rotation;
-public:
-    glm::vec3 position;
-    glm::vec3 scale;
-    uint32_t textureIndex;
-    uint32_t modelIndex;
-    std::vector<struct VkDescriptorSet_T *> descriptorSets;
+    glm::mat4 rotation = glm::eulerAngleXYZ(0.0f,0.0f,0.0f);
+    bool static_state = false;
+    glm::mat4 model_cache = glm::mat4(1.0f);
     std::vector<BehaviourComponent> components;
-    std::vector<struct VkDescriptorSet_T *> descriptorSets_benji;
-    std::vector<struct VkBuffer_T *> uniformBuffers;
-    std::vector<struct VkDeviceMemory_T *> uniformBuffersMemory;
-    std::vector<void*> uniformBuffersMapped;
-    struct VkDescriptorPool_T *descriptorPool;
 
-    GameObject(uint32_t textureIndex, uint32_t modelIndex);
 
-    GameObject(uint32_t textureIndex, uint32_t modelIndex, glm::vec3 position, glm::vec3 scale, glm::vec3 rotation);
+public:
+    GameObject();
+    explicit GameObject(glm::vec3 position);
+
+    GameObject(glm::vec3 position, glm::vec3 scale, glm::vec3 rotation);
+
+    void setVisible(bool visible);
+    [[nodiscard]] bool is_static() const;
 
     void start();
     void update();
@@ -42,7 +45,9 @@ public:
     void setRotation(glm::vec3 rot);
     void move(glm::vec3 dir);
     void rotate(float deg, glm::vec3 axis);
-    glm::mat4 getModelMatrix();
+    [[nodiscard]] glm::mat4 getModelMatrix() const;
+    void set_static(bool state);
+
 
 };
 
