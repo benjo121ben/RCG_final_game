@@ -32,16 +32,17 @@
 #include <any>
 #include <set>
 #include <unordered_map>
+#include "src_ben/GameObject.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 bool first = true;
 
-std::vector<std::string> model_paths;
-std::vector<std::string> texture_paths;
+static auto startGameTime = std::chrono::high_resolution_clock::now();
+static auto lastFrameTime = std::chrono::high_resolution_clock::now();
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
-static auto startProgramTime = std::chrono::high_resolution_clock::now();
+
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -78,26 +79,6 @@ void print(std::string str, T any) {
 template <typename T>
 void print(T str) {
     std::cout << str;
-}
-
-std::string to_str(VkPhysicalDeviceType type) {
-    switch (type)
-    {
-    case VK_PHYSICAL_DEVICE_TYPE_OTHER:
-        return "DEVICE_TYPE_OTHER";
-    case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-        return "DEVICE_TYPE_INTEGRATED_GPU";
-    case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-        return "DEVICE_TYPE_DISCRETE_GPU";
-    case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-        return "DEVICE_TYPE_VIRTUAL_GPU";
-    case VK_PHYSICAL_DEVICE_TYPE_CPU:
-        return "DEVICE_TYPE_CPU";
-    case VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM:
-        return "DEVICE_TYPE_MAX_ENUM";
-    default:
-        return "INVALID DEVICE TYPE";
-    }
 }
 
 
@@ -198,22 +179,6 @@ struct Mesh {
     VkDeviceMemory indexBufferMemory;
 };
 
-struct GameObject{
-    uint32_t textureIndex;
-    uint32_t modelIndex;
-    std::vector<VkDescriptorSet> descriptorSets;
-    std::vector<VkDescriptorSet> descriptorSets_benji;
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
-    std::vector<void*> uniformBuffersMapped;
-    VkDescriptorPool descriptorPool;
-
-    GameObject(uint32_t textureIndex, uint32_t modelIndex){
-        this->textureIndex = textureIndex;
-        this->modelIndex = modelIndex;
-    }
-};
-
 namespace std {
     template<> struct hash<Vertex> {
         size_t operator()(Vertex const& vertex) const {
@@ -232,9 +197,16 @@ struct UniformBufferObject {
 class HelloTriangleApplication {
 public:
     std::vector<GameObject> gameObjectList;
+    std::vector<Mesh> meshList;
+    std::vector<std::string> model_paths;
+    std::vector<std::string> texture_paths;
+
+
     void run() {
         initWindow();
         initVulkan();
+        lastFrameTime = std::chrono::high_resolution_clock::now();
+        startGameTime = std::chrono::high_resolution_clock::now();
         mainLoop();
         cleanup();
     }
@@ -276,13 +248,7 @@ private:
     std::vector<VkImageView> textureImageViews;
     std::vector<VkSampler> textureSamplers;
 
-
-    std::vector<Mesh> meshList;
     std::vector<Vertex> transferVertices;
-
-
-
-
 
     std::vector<VkCommandBuffer> commandBuffers;
 
@@ -292,7 +258,27 @@ private:
     uint32_t currentFrame = 0;
 
     bool framebufferResized = false;
+public:
 
+    GameObject& InstantiateGameObjectBeforeStart(uint32_t textureIndex, uint32_t modelIndex, const glm::vec3& pos){
+        GameObject& obj = gameObjectList.emplace_back(GameObject(textureIndex, modelIndex, pos, glm::vec3(1,1,1), glm::vec3(0,0,0)));
+        return obj;
+    }
+
+    GameObject& InstantiateGameObject(uint32_t textureIndex, uint32_t modelIndex, const glm::vec3& pos){
+        GameObject& obj = gameObjectList.emplace_back(GameObject(textureIndex, modelIndex, pos, glm::vec3(1,1,1), glm::vec3(0,0,0)));
+        createUniformBuffers(&obj);
+        createDescriptorPool(&obj);
+        createDescriptorSets(&obj);
+        return obj;
+    }
+
+    float deltaTime(){
+        return std::chrono::duration<float, std::chrono::seconds::period>(lastFrameTime - std::chrono::high_resolution_clock::now()).count();
+    }
+
+
+private:
     void initWindow() {
         glfwInit();
 
@@ -335,35 +321,31 @@ private:
             loadMesh(pathNr);
             createVertexBuffer(&meshList[pathNr]);
             createIndexBuffer(&meshList[pathNr]);
-
         }
-        for (int modelNr{0}; modelNr < gameObjectList.size(); modelNr++){
-            createUniformBuffers(&gameObjectList[modelNr]);
-            createDescriptorPool(&gameObjectList[modelNr]);
-            createDescriptorSets(&gameObjectList[modelNr]);
+        for (auto& model : gameObjectList){
+            createUniformBuffers(&model);
+            createDescriptorPool(&model);
+            createDescriptorSets(&model);
         }
         createCommandBuffers();
         createSyncObjects();
     }
 
-    void InstantiateGameObject(uint32_t textureIndex, uint32_t modelIndex){
-        gameObjectList.emplace_back(GameObject(textureIndex, modelIndex));
-        size_t last = gameObjectList.size() -1;
-        createUniformBuffers(&gameObjectList[last]);
-        createDescriptorPool(&gameObjectList[last]);
-        createDescriptorSets(&gameObjectList[last]);
-    }
+
+
 
     void mainLoop() {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
-            if (std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::high_resolution_clock::now() - startProgramTime).count() > 4.0f && first) {
-                InstantiateGameObject(1, 1);
+
+            if (std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::high_resolution_clock::now() - startGameTime).count() > 4.0f && first) {
+                InstantiateGameObject(1, 1, glm::vec3(0,1,0));
+                gameObjectList[gameObjectList.size()-1].scale = glm::vec3(0.3f,0.3f,0.3f);
+                println("ROTATION: ", gameObjectList[gameObjectList.size()-1].getModelMatrix());
                 first = false;
             }
             drawFrame();
         }
-
         vkDeviceWaitIdle(device);
     }
 
@@ -1521,36 +1503,7 @@ private:
 
         //creates empty uniform buffer
         UniformBufferObject ubo{};
-        glm::mat4 base_roation = glm::rotate(glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),glm::radians(-90.0f), glm::vec3(0.0f, .0f, 1.0f));
-        //creates a model matrix for an object
-        if(gameObjectNumber == 0){
-            ubo.model = glm::rotate(glm::mat4(1.0f),
-                                    time * glm::radians(25.0f),
-                                    glm::vec3(0.0f, 1.0f, 0.0f)
-                                    ) * base_roation;
-        }
-        else if (gameObjectNumber == 1) {
-             ubo.model = glm::scale(
-                     glm::translate(
-                             glm::mat4(1.0f),
-                             glm::vec3(0,0.5f,0)
-                     ),
-                     glm::vec3(0.1f, 0.1f, 0.1f)
-             );
-        }
-        else{
-             ubo.model = glm::scale(
-                 glm::rotate(
-                     glm::translate(
-                         glm::mat4(1.0f),
-                         glm::vec3(1,0.5f,0)
-                     ),
-                     time * glm::radians(-25.0f),
-                     glm::vec3(0.0f, 1.0f, 0.0f)
-                 ),
-                 glm::vec3(0.4f, 0.4f, 0.4f)
-             );
-        }
+        ubo.model = gameObjectList[gameObjectNumber].getModelMatrix();
         //creates a view matrix for the camera
         ubo.view = glm::lookAt(glm::vec3(1.5f, 3.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         //creates the projection matrix
@@ -1585,6 +1538,7 @@ private:
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
         recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+        lastFrameTime = std::chrono::high_resolution_clock::now();
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
