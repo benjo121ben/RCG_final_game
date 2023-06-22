@@ -1,0 +1,10 @@
+*.html
+ads.txt
+cmake-build-debug/
+.idea/
+.vs/
+/*.exe
+/*.ilk
+/*.obj
+/*.pdb
+/*.zip
