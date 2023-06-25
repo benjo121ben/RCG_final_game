@@ -30,7 +30,12 @@ struct Game {
 
     float deltaTime() {
         return std::chrono::duration<float, std::chrono::seconds::period>(
-                lastFrameTime - std::chrono::high_resolution_clock::now()).count();
+                std::chrono::high_resolution_clock::now() - lastFrameTime).count();
+    }
+
+    float fullTime() {
+        return std::chrono::duration<float, std::chrono::seconds::period>(
+                std::chrono::high_resolution_clock::now() - startGameTime).count();
     }
 
     void mainLoop() {
@@ -44,13 +49,11 @@ struct Game {
                 }
                 firstFrame = false;
             }
-
-            if (std::chrono::duration<float, std::chrono::seconds::period>(
-                    std::chrono::high_resolution_clock::now() - startGameTime).count() > 4.0f && first) {
+            if (fullTime() > 2.0f && first) {
+                println("TRIGGERED");
                 GameObject& obj = InstantiateGameObject(glm::vec3(0, 1, 0));
                 obj.scale = glm::vec3(0.3f, 0.3f, 0.3f);
                 createRenderInfo(obj, 1, 1);
-                println("ROTATION: ", obj.getModelMatrix());
                 first = false;
             }
             renderer->drawFrame(gameObjectList);

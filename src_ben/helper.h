@@ -4,6 +4,12 @@
 
 #ifndef INC_28_MODEL_LOADING_CPP_HELPER_H
 #define INC_28_MODEL_LOADING_CPP_HELPER_H
+#define GLM_ENABLE_EXPERIMENTAL
+#include<iostream>
+#include<string>
+#include <glm/gtx/string_cast.hpp>
+
+
 
 template <typename T>
 void println(std::string str,T any) {
@@ -15,11 +21,11 @@ void println(T str) {
     std::cout << str << "\n";
 }
 
-void println(glm::mat4 mat) {
+inline void println(glm::mat4 mat) {
     std::cout << glm::to_string(mat) << "\n";
 }
 
-void println(std::string str, glm::mat4 mat) {
+inline void println(std::string str, glm::mat4 mat) {
     std::cout << str << " " << glm::to_string(mat) << "\n";
 }
 

@@ -24,6 +24,8 @@ struct GameObject{
     RenderInfo* renderInfo = nullptr;
 
 private:
+    std::vector<GameObject*> children;
+    GameObject* parent = nullptr;
     glm::mat4 rotation = glm::eulerAngleXYZ(0.0f,0.0f,0.0f);
     bool static_state = false;
     glm::mat4 model_cache = glm::mat4(1.0f);
@@ -37,16 +39,21 @@ public:
     GameObject(glm::vec3 position, glm::vec3 scale, glm::vec3 rotation);
 
     void setVisible(bool visible);
-    [[nodiscard]] bool is_static() const;
-
     void start();
     void update();
     void reset();
     void setRotation(glm::vec3 rot);
+    void addChild(GameObject* child, bool setParent=true);
+    void removeChild(GameObject* child);
+    void setParent(GameObject* parent, bool addChild=true);
     void move(glm::vec3 dir);
     void rotate(float deg, glm::vec3 axis);
-    [[nodiscard]] glm::mat4 getModelMatrix() const;
     void set_static(bool state);
+
+    [[nodiscard]] GameObject* getParent() const;
+    [[nodiscard]] const std::vector<GameObject*>& getChildren() const;
+    [[nodiscard]] glm::mat4 getModelMatrix() const;
+    [[nodiscard]] bool is_static() const;
 
 
 };
