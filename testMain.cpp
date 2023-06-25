@@ -116,7 +116,7 @@ int main() {
         // map->setRotation(glm::vec3(-90.0f, 0.0f, -90.0f));
         game.createRenderInfo(*map, 0, 4);
         game.createRenderInfo(*tank, 1, 3);
-        const auto b = new RotateBehaviour();
+        tank->addComponent(new RotateBehaviour());
 
 
         //start game loop

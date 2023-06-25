@@ -18,6 +18,8 @@
 #include "glm/gtx/euler_angles.hpp"
 #include "RenderInfo.h"
 
+
+
 struct GameObject{
     std::string id = "node";
     glm::vec3 position = glm::vec3(0);
@@ -50,7 +52,7 @@ public:
     void reset();
     void setRotation(glm::vec3 rot);
 
-    //void addComponent(BehaviourComponent component);
+    void addComponent(BehaviourComponent* component);
     void addChild(GameObject* child, bool setParent=true);
     void removeChild(GameObject* child);
     void setParent(GameObject* parent, bool addChild=true);

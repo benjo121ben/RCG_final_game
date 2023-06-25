@@ -35,10 +35,14 @@ GameObject::~GameObject(){
     }
 }
 
-//void GameObject::addComponent(BehaviourComponent component){
-//    components.push_back(component);
-//    components.at(components.size()-1).gameObject = this;
-//}
+void GameObject::addComponent(BehaviourComponent* component){
+    if(componentsize == 5) {
+        throw std::runtime_error("TRYING TO ADD A FIFTH COMPONENT");
+    }
+    components[componentsize] = component;
+    component->gameObject = this;
+    componentsize++;
+}
 
 
 void GameObject::addChild(GameObject* child, bool setParent) {
@@ -94,11 +98,17 @@ const std::vector<GameObject*>& GameObject::getChildren() const{
     return children;
 }
 
-void GameObject::start() {for (auto& component : components) component->start();}
+void GameObject::start() {
+    for (int i{0}; i < componentsize; ++i) { components[i]->start(); }
+}
 
-void GameObject::update() {for ( auto& component : components) component->update();}
+void GameObject::update() {
+    for (int i{0}; i < componentsize; ++i) { components[i]->update(); }
+}
 
-void GameObject::reset() {for (auto& component : components) component->reset();}
+void GameObject::reset() {
+    for (int i{0}; i < componentsize; ++i) { components[i]->reset(); }
+}
 
 void GameObject::setRotation(glm::vec3 rot) {this->rotation = glm::eulerAngleXYZ(glm::radians(rot.x), glm::radians(rot.y), glm::radians(rot.z));}
 
@@ -121,19 +131,19 @@ glm::mat4 GameObject::getModelMatrix() const {
     }
     if(!parent) {
         return glm::scale(
-                rotation * glm::translate(
+                 glm::translate(
                         glm::mat4(1.0f),
                         position
-                ),
+                ) * rotation,
                 scale
         );
     }
     else {
         return parent->getModelMatrix() * glm::scale(
-                rotation * glm::translate(
+                glm::translate(
                         glm::mat4(1.0f),
                         position
-                ),
+                ) * rotation,
                 scale
         );
     }
