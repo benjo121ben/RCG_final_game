@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 #include "helper.h"
+#include "deltaTime.h"
 #include "GameObject.h"
 #include "glm/gtx/euler_angles.hpp"
 
@@ -80,7 +81,7 @@ void GameObject::setRotation(glm::vec3 rot) {this->rotation = glm::eulerAngleXYZ
 
 void GameObject::move(glm::vec3 dir) {position += dir;}
 
-void GameObject::rotate(float deg, glm::vec3 axis) {rotation = glm::rotate(rotation, glm::radians(deg), axis);}
+void GameObject::rotate(float deg, glm::vec3 axis) {rotation = glm::rotate(glm::mat4(rotation), glm::radians(deg) * deltaTime(), axis);}
 
 void GameObject::setVisible(bool visible){
     if(!renderInfo) return;

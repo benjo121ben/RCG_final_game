@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE DEBUG)
 
 include_directories(glfw/glfw-3.2.1.bin.WIN64/include glm stb C:/VulkanSDK/1.3.239.0/Include src_ben)
-SET(SOURCES GameObject.cpp BehaviourComponent.cpp)
+SET(SOURCES GameObject.cpp BehaviourComponent.cpp deltaTime.cpp)
 add_executable(GAME testMain.cpp ${SOURCES})
 
 file(TO_CMAKE_PATH $ENV{VULKAN_SDK} VULKAN_PATH)

@@ -5,9 +5,9 @@
 #include "28_model_loading.h"
 #include "GameObject.h"
 #include "helper.h"
+#include "deltaTime.h"
 
-static auto startGameTime = std::chrono::high_resolution_clock::now();
-static auto lastFrameTime = std::chrono::high_resolution_clock::now();
+
 
 struct Game {
     std::vector<GameObject> gameObjectList;
@@ -28,15 +28,7 @@ struct Game {
         return obj;
     }
 
-    float deltaTime() {
-        return std::chrono::duration<float, std::chrono::seconds::period>(
-                std::chrono::high_resolution_clock::now() - lastFrameTime).count();
-    }
 
-    float fullTime() {
-        return std::chrono::duration<float, std::chrono::seconds::period>(
-                std::chrono::high_resolution_clock::now() - startGameTime).count();
-    }
 
     void mainLoop() {
         bool firstFrame{true};
@@ -52,10 +44,16 @@ struct Game {
             if (fullTime() > 2.0f && first) {
                 println("TRIGGERED");
                 GameObject& obj = InstantiateGameObject(glm::vec3(0, 1, 0));
-                obj.scale = glm::vec3(0.3f, 0.3f, 0.3f);
+                GameObject& obj2 = InstantiateGameObject(glm::vec3(0, 1, 0));
+                obj.scale = glm::vec3(0.1f, 0.1f, 0.1f);
+                obj2.scale = glm::vec3(0.1f, 0.1f, 0.1f);
+                obj.setParent(&gameObjectList[0]);
                 createRenderInfo(obj, 1, 1);
+                createRenderInfo(obj2, 1, 1);
                 first = false;
             }
+            gameObjectList[0].rotate(10, glm::vec3(0,1,0));
+            resetFrameTime();
             renderer->drawFrame(gameObjectList);
         }
         vkDeviceWaitIdle(renderer->device);
@@ -92,8 +90,8 @@ int main() {
         renderer.texture_paths = {"textures/viking_room.png", "textures/test.png"};
         renderer.init();
         game.createRenderInfo(obj, 0, 0);
-        lastFrameTime = std::chrono::high_resolution_clock::now();
-        startGameTime = std::chrono::high_resolution_clock::now();
+        resetGameTime();
+        resetFrameTime();
         game.mainLoop();
         game.cleanupGameObjects();
         renderer.cleanup();
