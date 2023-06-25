@@ -27,10 +27,11 @@ struct GameObject{
     GameObject* parent = nullptr;
 
 private:
+    BehaviourComponent* components [5];
+    int componentsize = 0;
     std::vector<GameObject*> children;
     bool static_state = false;
     glm::mat4 model_cache = glm::mat4(1.0f);
-    std::vector<BehaviourComponent> components;
 
 
 public:
@@ -48,6 +49,8 @@ public:
     void update();
     void reset();
     void setRotation(glm::vec3 rot);
+
+    //void addComponent(BehaviourComponent component);
     void addChild(GameObject* child, bool setParent=true);
     void removeChild(GameObject* child);
     void setParent(GameObject* parent, bool addChild=true);

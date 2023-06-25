@@ -7,3 +7,5 @@
 void BehaviourComponent::start(){}
 void BehaviourComponent::update(){}
 void BehaviourComponent::reset(){}
+
+void RotateBehaviour::update() {this->gameObject->rotate(90, glm::vec3(0,1,0));}

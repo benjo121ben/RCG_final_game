@@ -1459,7 +1459,7 @@ private:
         UniformBufferObject ubo{};
         ubo.model = obj.getModelMatrix();
         //creates a view matrix for the camera
-        ubo.view = glm::lookAt(glm::vec3(0, 3.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        ubo.view = glm::lookAt(glm::vec3(0, 5.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         //creates the projection matrix
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 90.0f);
         ubo.proj[1][1] *= -1;

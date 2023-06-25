@@ -30,7 +30,15 @@ GameObject::~GameObject(){
     for(auto child : children){
         delete child;
     }
+    for(auto comp : components){
+        delete comp;
+    }
 }
+
+//void GameObject::addComponent(BehaviourComponent component){
+//    components.push_back(component);
+//    components.at(components.size()-1).gameObject = this;
+//}
 
 
 void GameObject::addChild(GameObject* child, bool setParent) {
@@ -86,11 +94,11 @@ const std::vector<GameObject*>& GameObject::getChildren() const{
     return children;
 }
 
-void GameObject::start() {for (auto& component : components) component.start();}
+void GameObject::start() {for (auto& component : components) component->start();}
 
-void GameObject::update() {for ( auto& component : components) component.update();}
+void GameObject::update() {for ( auto& component : components) component->update();}
 
-void GameObject::reset() {for (auto& component : components) component.reset();}
+void GameObject::reset() {for (auto& component : components) component->reset();}
 
 void GameObject::setRotation(glm::vec3 rot) {this->rotation = glm::eulerAngleXYZ(glm::radians(rot.x), glm::radians(rot.y), glm::radians(rot.z));}
 

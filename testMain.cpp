@@ -49,7 +49,6 @@ struct Game {
 
     void mainLoop() {
         bool firstFrame{true};
-        bool first{true};
         while (!glfwWindowShouldClose(renderer->window)) {
             glfwPollEvents();
             if (firstFrame && !rootNode.getChildren().empty()) {
@@ -59,40 +58,10 @@ struct Game {
                 }
             }
             firstFrame = false;
-
-            if (fullTime() > 2.0f && first) {
-                println("TRIGGERED");
-                GameObject* obj = InstantiateGameObject("circle1", glm::vec3(0, 1, 0));
-                GameObject* obj2 = InstantiateGameObject("circle2", glm::vec3(0, 1, 0));
-                obj->scale = glm::vec3(0.1f, 0.1f, 0.1f);
-                obj2->scale = glm::vec3(0.1f, 0.1f, 0.1f);
-                obj->setParent(obj2);
-                createRenderInfo(*obj, 1, 1);
-                createRenderInfo(*obj2, 1, 1);
-                first = false;
+            for(auto& child : rootNode.getChildren()){
+                std::function<void(GameObject*)> update_lambda = [](GameObject* a) {a->update();};
+                GameObject::do_for_all_nodes(child, update_lambda);
             }
-            // println("mat");
-            // for(const auto& o : gameObjectList){
-            //     println(o.id);
-            //     if(o.getParent()){
-            //         print("PAR ADR: ");
-            //         println(o.getParent()->id);
-            //         println("PAR MAT: ", o.getParent()->getModelMatrix());
-            //         println("PAR COMBO: ",o.getParent()->getModelMatrix() * glm::scale(
-            //                 o.rotation * glm::translate(
-            //                         glm::mat4(1.0f),
-            //                         o.position
-            //                 ),
-            //                 o.scale
-            //         ));
-            //         println("");
-            //     }
-            //     println(o.getModelMatrix());
-            //     println("");
-            // }
-            // println("mat end");
-            if(!first) rootNode.getChildren()[0]->rotate(90, glm::vec3(0,1,0));
-            //println(rootNode.getChildren()[0]->id);
             resetFrameTime();
             renderer->drawFrame(rootNode);
         }
@@ -133,53 +102,22 @@ int main() {
 
     try {
         //setup
-        renderer.model_paths = {"models/viking_room.obj", "models/sphere.obj", "models/cube.obj"};
+        renderer.model_paths = {"models/viking_room.obj", "models/sphere.obj", "models/cube.obj", "models/tank.obj", "models/map.obj"};
         renderer.texture_paths = {"textures/viking_room.png", "textures/test.png"};
         renderer.init();
 
         //obj setup
-        GameObject* emptyobj = game.InstantiateGameObjectBeforeStart(glm::vec3(2, 0, 0));
-        println("");
-        println("objp", &emptyobj);
-        println("obj0", &(game.rootNode.getChildren()[0]));
-        println("");
-
-        GameObject* viking = game.InstantiateGameObjectBeforeStart("vikingRoom", glm::vec3(0));
-        viking->setParent(emptyobj);
-        println("adresses");
-        println("objp", &emptyobj);
-        println("viki", &viking);
-        println("obj0", &(game.rootNode.getChildren()[0]));
-        println("obj1", &(game.rootNode.getChildren()[1]));
-        println("");
-
-        println("ids");
-        println("objp", emptyobj->id);
-        println("viki", viking->id);
-        println("obj0", game.rootNode.getChildren()[0]->id);
-        println("obj1", game.rootNode.getChildren()[1]->id);
-        println("");
-
-        println("parent?");
-        println("objp", emptyobj->getParent() != nullptr);
-        println("viki", viking->getParent() != nullptr);
-        println("obj0", game.rootNode.getChildren()[0]->getParent() != nullptr);
-        println("obj1", game.rootNode.getChildren()[1]->getParent() != nullptr);
-        println("");
-
-        emptyobj->id = "not rooot";
-        println("ids after change");
-        println("objp", emptyobj->id);
-        println("viki", viking->id);
-        println("obj0", game.rootNode.getChildren()[0]->id);
-        println("obj1", game.rootNode.getChildren()[1]->id);
-        println("");
-
+        GameObject* map = game.InstantiateGameObjectBeforeStart("map", glm::vec3(0));
+        GameObject* tank = game.InstantiateGameObjectBeforeStart("tank", glm::vec3(2,1,0));
+        tank->setParent(map);
 
         //TEST
 
-        viking->setRotation(glm::vec3(-90.0f, 0.0f, -90.0f));
-        game.createRenderInfo(*viking, 0, 0);
+        // map->setRotation(glm::vec3(-90.0f, 0.0f, -90.0f));
+        game.createRenderInfo(*map, 0, 4);
+        game.createRenderInfo(*tank, 1, 3);
+        const auto b = new RotateBehaviour();
+
 
         //start game loop
         resetGameTime();
