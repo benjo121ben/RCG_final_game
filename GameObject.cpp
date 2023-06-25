@@ -3,24 +3,39 @@
 //
 
 #include <stdexcept>
+#include <utility>
 #include "helper.h"
 #include "deltaTime.h"
 #include "GameObject.h"
 #include "glm/gtx/euler_angles.hpp"
 
+void GameObject::do_for_all_nodes(GameObject* node, std::function< void(GameObject*) >& lambda){
+    lambda(node);
+    for(auto& child : node->getChildren()){
+        do_for_all_nodes(child, lambda);
+    }
+}
+
 GameObject::GameObject() = default;
+
+GameObject::GameObject(std::string id, glm::vec3 position) : id{std::move(id)}, position{position} {}
+
 GameObject::GameObject(glm::vec3 position) : position{position} {}
 
-GameObject::GameObject(glm::vec3 position, glm::vec3 scale, glm::vec3 rotation) : GameObject(position){
+GameObject::GameObject(std::string id, glm::vec3 position, glm::vec3 scale, glm::vec3 rotation) : GameObject(std::move(id), position){
     this->scale = scale;
     this->setRotation(rotation);
 }
+GameObject::~GameObject(){
+    for(auto child : children){
+        delete child;
+    }
+}
+
 
 void GameObject::addChild(GameObject* child, bool setParent) {
     if(child == this) throw std::runtime_error("trying to add object as its own child");
-    println(children.size());
     for(auto it{children.begin()}; it != children.end(); ++it){
-        println("ey");
         if(*it == child){
             println("already child");
             return;
@@ -106,13 +121,13 @@ glm::mat4 GameObject::getModelMatrix() const {
         );
     }
     else {
-        return glm::scale(
+        return parent->getModelMatrix() * glm::scale(
                 rotation * glm::translate(
                         glm::mat4(1.0f),
                         position
                 ),
                 scale
-        ) * parent->getModelMatrix();
+        );
     }
 }
 

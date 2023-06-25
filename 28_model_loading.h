@@ -186,7 +186,7 @@ public:
         vkDestroyDescriptorPool(device, renderInfo->descriptorPool, nullptr);
     }
 
-    void drawFrame(const std::vector<GameObject>& gameObjectList) {
+    void drawFrame(const GameObject& rootNode) {
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
@@ -199,14 +199,15 @@ public:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        for(const auto& obj : gameObjectList){
-            updateUniformBuffer(obj, currentFrame);
+        std::function<void(GameObject*)> updateLambda = [&](GameObject* a) { updateUniformBuffer(*a, currentFrame);};
+        for(GameObject* obj : rootNode.getChildren()){
+            GameObject::do_for_all_nodes(obj, updateLambda);
         }
 
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, gameObjectList);
+        recordCommandBuffer(commandBuffers[currentFrame], imageIndex, rootNode);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1343,7 +1344,7 @@ private:
         }
     }
 
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const std::vector<GameObject>& gameObjectList) {
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const GameObject& rootNode) {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -1384,23 +1385,13 @@ private:
             scissor.extent = swapChainExtent;
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-            for(const auto& gameObj : gameObjectList){
-                if(!gameObj.renderInfo) continue;
-                RenderInfo* renderInfo = gameObj.renderInfo;
-                VkBuffer vertexBuffers[] = {meshList[renderInfo->modelIndex].vertexBuffer};
-                VkDeviceSize offsets[] = {0};
-                vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-                vkCmdBindVertexBuffers(commandBuffer, 1, 1, vertexBuffers, offsets);
 
-                vkCmdBindIndexBuffer(commandBuffer, meshList[renderInfo->modelIndex].indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-                std::array<VkDescriptorSet, 2> setsToBind{
-                        renderInfo->descriptorSets[currentFrame], renderInfo->descriptorSets_benji[currentFrame]
-                };
-                vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, setsToBind.data(), 0, nullptr);
-
-                vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(meshList[renderInfo->modelIndex].indices.size()), 1, 0, 0, 0);
+            std::function<void(GameObject*)> drawLambda = [&](GameObject* a) { drawSingleObject(commandBuffer, *a);};
+            for(GameObject* obj : rootNode.getChildren()){
+                GameObject::do_for_all_nodes(obj, drawLambda);
             }
+
+
 
 
             // viewport.width = (float) swapChainExtent.width / 5.0f;
@@ -1413,6 +1404,24 @@ private:
         if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
+    }
+
+    void drawSingleObject(VkCommandBuffer commandBuffer, const GameObject& gameObj){
+        if(!gameObj.renderInfo) return;
+        RenderInfo* renderInfo = gameObj.renderInfo;
+        VkBuffer vertexBuffers[] = {meshList[renderInfo->modelIndex].vertexBuffer};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindVertexBuffers(commandBuffer, 1, 1, vertexBuffers, offsets);
+
+        vkCmdBindIndexBuffer(commandBuffer, meshList[renderInfo->modelIndex].indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+        std::array<VkDescriptorSet, 2> setsToBind{
+                renderInfo->descriptorSets[currentFrame], renderInfo->descriptorSets_benji[currentFrame]
+        };
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 2, setsToBind.data(), 0, nullptr);
+
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(meshList[renderInfo->modelIndex].indices.size()), 1, 0, 0, 0);
     }
 
     void createSyncObjects() {
@@ -1450,7 +1459,7 @@ private:
         UniformBufferObject ubo{};
         ubo.model = obj.getModelMatrix();
         //creates a view matrix for the camera
-        ubo.view = glm::lookAt(glm::vec3(1.5f, 3.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        ubo.view = glm::lookAt(glm::vec3(0, 3.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         //creates the projection matrix
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 90.0f);
         ubo.proj[1][1] *= -1;

@@ -19,24 +19,29 @@
 #include "RenderInfo.h"
 
 struct GameObject{
+    std::string id = "node";
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1);
+    glm::mat4 rotation = glm::eulerAngleXYZ(0.0f,0.0f,0.0f);
     RenderInfo* renderInfo = nullptr;
+    GameObject* parent = nullptr;
 
 private:
     std::vector<GameObject*> children;
-    GameObject* parent = nullptr;
-    glm::mat4 rotation = glm::eulerAngleXYZ(0.0f,0.0f,0.0f);
     bool static_state = false;
     glm::mat4 model_cache = glm::mat4(1.0f);
     std::vector<BehaviourComponent> components;
 
 
 public:
+    static void do_for_all_nodes(GameObject* node, std::function< void(GameObject*) >& lambda);
+
     GameObject();
+    GameObject(std::string id, glm::vec3 position);
     explicit GameObject(glm::vec3 position);
 
-    GameObject(glm::vec3 position, glm::vec3 scale, glm::vec3 rotation);
+    GameObject(std::string id, glm::vec3 position, glm::vec3 scale, glm::vec3 rotation);
+    ~GameObject();
 
     void setVisible(bool visible);
     void start();
