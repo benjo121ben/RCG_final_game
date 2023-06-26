@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 #include <utility>
+#include <map>
 #include "helper.h"
 #include "deltaTime.h"
 #include "GameObject.h"
@@ -98,16 +99,16 @@ const std::vector<GameObject*>& GameObject::getChildren() const{
     return children;
 }
 
-void GameObject::start() {
-    for (int i{0}; i < componentsize; ++i) { components[i]->start(); }
+void GameObject::start(const std::map<int, int>& keymap) {
+    for (int i{0}; i < componentsize; ++i) { components[i]->start(keymap); }
 }
 
-void GameObject::update() {
-    for (int i{0}; i < componentsize; ++i) { components[i]->update(); }
+void GameObject::update(const std::map<int, int>& keymap) {
+    for (int i{0}; i < componentsize; ++i) { components[i]->update(keymap); }
 }
 
-void GameObject::reset() {
-    for (int i{0}; i < componentsize; ++i) { components[i]->reset(); }
+void GameObject::reset(const std::map<int, int>& keymap) {
+    for (int i{0}; i < componentsize; ++i) { components[i]->reset(keymap); }
 }
 
 void GameObject::setRotation(glm::vec3 rot) {this->rotation = glm::eulerAngleXYZ(glm::radians(rot.x), glm::radians(rot.y), glm::radians(rot.z));}

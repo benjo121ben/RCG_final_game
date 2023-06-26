@@ -16,6 +16,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 #include "glm/gtx/euler_angles.hpp"
+#include <map>
 #include "RenderInfo.h"
 
 
@@ -47,9 +48,9 @@ public:
     ~GameObject();
 
     void setVisible(bool visible);
-    void start();
-    void update();
-    void reset();
+    void start(const std::map<int, int>& keymap);
+    void update(const std::map<int, int>& keymap);
+    void reset(const std::map<int, int>& keymap);
     void setRotation(glm::vec3 rot);
 
     void addComponent(BehaviourComponent* component);

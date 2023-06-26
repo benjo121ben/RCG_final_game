@@ -880,7 +880,7 @@ private:
 
     void createTextureImage(uint32_t texture_index) {
         int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load(texture_paths[texture_index].c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load(("textures/" + texture_paths[texture_index]).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = texWidth * texHeight * 4;
 
         if (!pixels) {
@@ -1066,7 +1066,7 @@ private:
         std::string warn, err;
         Mesh loadedMesh;
 
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, model_paths[model_index].c_str())) {
+        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, ("models/" + model_paths[model_index]).c_str())) {
             throw std::runtime_error(warn + err);
         }
 
@@ -1459,7 +1459,7 @@ private:
         UniformBufferObject ubo{};
         ubo.model = obj.getModelMatrix();
         //creates a view matrix for the camera
-        ubo.view = glm::lookAt(glm::vec3(0, 5.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        ubo.view = glm::lookAt(glm::vec3(-0.5, 5.0f, 0.5), glm::vec3(-0.5, 0, 0.5), glm::vec3(0.0f, 0.0f, -1.0f));
         //creates the projection matrix
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 90.0f);
         ubo.proj[1][1] *= -1;
