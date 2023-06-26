@@ -9,6 +9,8 @@
 
 struct Renderer;
 
+
+
 struct Game {
     GameObject rootNode;
     FrameData frameData;

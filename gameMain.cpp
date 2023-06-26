@@ -8,6 +8,18 @@
 #include "helper.h"
 #include "deltaTime.h"
 
+int gameMap[10][10]{
+        {1,1,1,1,1,1,1,1,1,1},
+        {1,0,0,0,0,0,0,2,0,1},
+        {1,0,2,0,0,0,0,2,0,1},
+        {1,0,0,0,2,0,0,0,0,1},
+        {1,0,0,0,0,0,2,0,0,1},
+        {1,0,2,2,2,0,0,0,0,1},
+        {1,0,2,0,0,0,0,2,0,1},
+        {1,0,0,0,0,0,0,0,0,1},
+        {1,0,0,0,0,2,0,2,0,1},
+        {1,1,1,1,1,1,1,1,1,1}
+};
 
 Game::Game(Renderer* renderer) : renderer{renderer} {}
 
@@ -132,8 +144,9 @@ int main() {
         glfwSetKeyCallback(renderer.window, Game::key_callback);
 
         //obj setup
-        GameObject* map = game.InstantiateGameObjectBeforeStart("map", glm::vec3(0));
-        GameObject* tank = game.InstantiateGameObjectBeforeStart("tank", glm::vec3(2,0,0));
+        //GameObject* map = game.InstantiateGameObjectBeforeStart("map", glm::vec3(0));
+        float scaleX = 50, scaleZ = 50;
+        GameObject* tank = game.InstantiateGameObjectBeforeStart("tank", glm::vec3(scaleX/2,0,scaleZ/2));
         GameObject* tankhead = game.InstantiateGameObjectBeforeStart("tankhead", glm::vec3(0,0.2f,0));
         GameObject* muzzle = game.InstantiateGameObjectBeforeStart("muzzle", glm::vec3(0,0,0));
         GameObject* tankheadVisual = game.InstantiateGameObjectBeforeStart("tankhead_vis", glm::vec3(0,0,0));
@@ -141,15 +154,36 @@ int main() {
         tankheadVisual->setParent(tankhead);
         muzzle->setParent(tankhead);
         tankheadVisual->scale = glm::vec3(0.5f);
+
         Camera& cam = game.frameData.camera;
         cam.position = glm::vec3(0,5,5);
         cam.target = glm::vec3(0);
         cam.up = glm::vec3(0,1,0);
 
+        GameObject* ground = game.InstantiateGameObjectBeforeStart("Ground", glm::vec3(scaleX/2,0,scaleZ/2));
+        ground->scale = glm::vec3(scaleX,0,scaleZ);
+        game.createRenderInfo(*ground, 3, 2);
+
+        for(int row{0}; row < 10; row++){
+            for(int col{0}; col < 10; col++){
+                if(gameMap[row][col] == 1){
+                    GameObject* obst = game.InstantiateGameObjectBeforeStart("obst" + std::to_string(row) + "," + std::to_string(col), glm::vec3(row*scaleX/10,2.5,col*scaleZ/10));
+                    obst->scale = glm::vec3(scaleX/10,5,scaleZ/10);
+                    game.createRenderInfo(*obst, 1, 2);
+                }
+
+                if(gameMap[row][col] == 2){
+                    GameObject* obst = game.InstantiateGameObjectBeforeStart("obst" + std::to_string(row) + "," + std::to_string(col), glm::vec3(row*scaleX/10,0,col*scaleZ/10));
+                    obst->scale = glm::vec3(1.2f,1.3f,1.6f);
+                    game.createRenderInfo(*obst, 1, 2);
+                }
+            }
+        }
+
         //TEST
 
         // map->setRotation(glm::vec3(-90.0f, 0.0f, -90.0f));
-        game.createRenderInfo(*map, 1, 4);
+        //game.createRenderInfo(*map, 1, 4);
         game.createRenderInfo(*tank, 2, 3);
         game.createRenderInfo(*tankheadVisual, 3, 3);
         tank->addComponent(new MovementBehaviour(), &game);

@@ -1465,7 +1465,7 @@ private:
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 90.0f);
         ubo.proj[1][1] *= -1;
 
-        ubo.lightPos = glm::vec3(-6.0f, 1.0f, 4.0f);
+        ubo.lightPos = glm::vec3(-6.0f, 10.0f, 4.0f);
 
 
         //I'm guessing this sends the data to the graphics card

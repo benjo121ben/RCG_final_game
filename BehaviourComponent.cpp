@@ -25,8 +25,8 @@ void RotateBehaviour::update(FrameData& frameData) {
 
 
 void MovementBehaviour::update(FrameData& frameData) {
-    if(key_pressed(GLFW_KEY_W)) gameObject->move(glm::normalize(gameObject->to_world(glm::vec3(0,0,-1), 0)) * deltaTime());
-    if(key_pressed(GLFW_KEY_S)) gameObject->move(glm::normalize(gameObject->to_world(glm::vec3(0,0,1), 0)) * deltaTime());
+    if(key_pressed(GLFW_KEY_W)) gameObject->move(glm::normalize(gameObject->to_world(glm::vec3(0,0,-4), 0)) * deltaTime());
+    if(key_pressed(GLFW_KEY_S)) gameObject->move(glm::normalize(gameObject->to_world(glm::vec3(0,0,4), 0)) * deltaTime());
     if(key_pressed(GLFW_KEY_D)) {
         gameObject->rotate(-90, glm::vec3(0, 1, 0));
     }
