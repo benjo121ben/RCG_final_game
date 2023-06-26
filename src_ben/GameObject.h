@@ -11,6 +11,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
 #include "BehaviourComponent.h"
+#include "framedata.h"
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -48,9 +49,9 @@ public:
     ~GameObject();
 
     void setVisible(bool visible);
-    void start(const std::map<int, int>& keymap);
-    void update(const std::map<int, int>& keymap);
-    void reset(const std::map<int, int>& keymap);
+    void start(const std::map<int, int>& keymap, FrameData& frameData);
+    void update(const std::map<int, int>& keymap, FrameData& frameData);
+    void reset(const std::map<int, int>& keymap, FrameData& frameData);
     void setRotation(glm::vec3 rot);
 
     void addComponent(BehaviourComponent* component);
@@ -60,6 +61,7 @@ public:
     void move(glm::vec3 dir);
     void rotate(float deg, glm::vec3 axis);
     void set_static(bool state);
+    glm::vec3 to_world(glm::vec3 vector, int point_or_vec) const;
 
     [[nodiscard]] GameObject* getParent() const;
     [[nodiscard]] const std::vector<GameObject*>& getChildren() const;

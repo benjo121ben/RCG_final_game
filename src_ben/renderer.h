@@ -35,6 +35,7 @@
 #include "GameObject.h"
 #include "Mesh.h"
 #include "Vertex.h"
+#include "Camera.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -186,7 +187,7 @@ public:
         vkDestroyDescriptorPool(device, renderInfo->descriptorPool, nullptr);
     }
 
-    void drawFrame(const GameObject& rootNode) {
+    void drawFrame(const GameObject& rootNode, Camera& camera) {
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
@@ -199,7 +200,7 @@ public:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        std::function<void(GameObject*)> updateLambda = [&](GameObject* a) { updateUniformBuffer(*a, currentFrame);};
+        std::function<void(GameObject*)> updateLambda = [&](GameObject* a) { updateUniformBuffer(*a, camera, currentFrame);};
         for(GameObject* obj : rootNode.getChildren()){
             GameObject::do_for_all_nodes(obj, updateLambda);
         }
@@ -1445,7 +1446,7 @@ private:
         }
     }
 
-    void updateUniformBuffer(const GameObject& obj, uint32_t currentImage) {
+    void updateUniformBuffer(const GameObject& obj, Camera& camera, uint32_t currentImage) {
         //starts a timer
         if(!obj.renderInfo || obj.is_static()) return;
         static auto startTime = std::chrono::high_resolution_clock::now();
@@ -1459,7 +1460,7 @@ private:
         UniformBufferObject ubo{};
         ubo.model = obj.getModelMatrix();
         //creates a view matrix for the camera
-        ubo.view = glm::lookAt(glm::vec3(-0.5, 5.0f, 0.5), glm::vec3(-0.5, 0, 0.5), glm::vec3(0.0f, 0.0f, -1.0f));
+        ubo.view = glm::lookAt(camera.position, camera.target, camera.up);
         //creates the projection matrix
         ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 90.0f);
         ubo.proj[1][1] *= -1;

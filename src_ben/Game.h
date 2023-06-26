@@ -4,10 +4,13 @@
 
 #ifndef INC_28_MODEL_LOADING_CPP_GAME_H
 #define INC_28_MODEL_LOADING_CPP_GAME_H
+#include "framedata.h"
+
 struct Game {
     GameObject rootNode;
-    Renderer *renderer;
+    FrameData frameData;
     inline static std::map<int, int> keymap = std::map<int,int>();
+    Renderer *renderer;
 
     explicit Game(Renderer *renderer);
 

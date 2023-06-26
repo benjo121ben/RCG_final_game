@@ -2,7 +2,7 @@
 // Created by benja on 22/06/2023.
 //
 
-#include "28_model_loading.h"
+#include "renderer.h"
 #include "GameObject.h"
 #include "Game.h"
 #include "helper.h"
@@ -31,13 +31,13 @@ GameObject* Game::InstantiateGameObjectBeforeStart(std::string id, const glm::ve
 GameObject* Game::InstantiateGameObject(std::string& id, const glm::vec3 &pos) {
     auto test = new GameObject(id, pos);
     rootNode.addChild(test);
-    test->start(Game::keymap);
+    test->start(Game::keymap, frameData);
     return test;
 }
 GameObject* Game::InstantiateGameObject(std::string id, const glm::vec3 &pos) {
     auto test = new GameObject(std::move(id), pos);
     rootNode.addChild(test);
-    test->start(Game::keymap);
+    test->start(Game::keymap, frameData);
     return test;
 }
 
@@ -49,17 +49,17 @@ void Game::mainLoop() {
         glfwPollEvents();
         if (firstFrame && !rootNode.getChildren().empty()) {
             for(auto& child : rootNode.getChildren()){
-                std::function<void(GameObject*)> start_lambda = [&](GameObject* a) {a->start(Game::keymap);};
+                std::function<void(GameObject*)> start_lambda = [&](GameObject* a) {a->start(Game::keymap, frameData);};
                 GameObject::do_for_all_nodes(child, start_lambda);
             }
         }
         firstFrame = false;
         for(auto& child : rootNode.getChildren()){
-            std::function<void(GameObject*)> update_lambda = [&](GameObject* a) {a->update(Game::keymap);};
+            std::function<void(GameObject*)> update_lambda = [&](GameObject* a) {a->update(Game::keymap, frameData);};
             GameObject::do_for_all_nodes(child, update_lambda);
         }
         resetFrameTime();
-        renderer->drawFrame(rootNode);
+        renderer->drawFrame(rootNode, frameData.camera);
     }
     vkDeviceWaitIdle(renderer->device);
 }
@@ -117,6 +117,10 @@ int main() {
         GameObject* map = game.InstantiateGameObjectBeforeStart("map", glm::vec3(0));
         GameObject* tank = game.InstantiateGameObjectBeforeStart("tank", glm::vec3(2,1,0));
         tank->setParent(map);
+        Camera& cam = game.frameData.camera;
+        cam.position = glm::vec3(0,5,5);
+        cam.target = glm::vec3(0);
+        cam.up = glm::vec3(0,1,0);
 
         //TEST
 
