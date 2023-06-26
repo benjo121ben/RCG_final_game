@@ -5,12 +5,16 @@
 #ifndef INC_28_MODEL_LOADING_CPP_GAME_H
 #define INC_28_MODEL_LOADING_CPP_GAME_H
 #include "framedata.h"
+#include <queue>
+
+struct Renderer;
 
 struct Game {
     GameObject rootNode;
     FrameData frameData;
     inline static std::map<int, int> keymap = std::map<int,int>();
     Renderer *renderer;
+    std::queue<GameObject*> removalQueue;
 
     explicit Game(Renderer *renderer);
 
@@ -23,6 +27,9 @@ struct Game {
     GameObject *InstantiateGameObject(std::string &id, const glm::vec3 &pos);
 
     GameObject *InstantiateGameObject(std::string id, const glm::vec3 &pos);
+
+    void scheduleGameObjectRemoval(GameObject *);
+    void destroyScheduledGameObjects();
 
     void mainLoop();
 

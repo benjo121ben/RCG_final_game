@@ -8,18 +8,54 @@
 #include "framedata.h"
 
 struct GameObject;
+struct Game;
+
 
 struct BehaviourComponent {
     GameObject* gameObject = nullptr;
-    virtual void start(const std::map<int, int>& keymap, FrameData& frameData);
-    virtual void update(const std::map<int, int>& keymap, FrameData& frameData);
-    virtual void reset(const std::map<int, int>& keymap, FrameData& frameData);
-    static bool key_pressed(const std::map<int, int>& keymap, int key);
+    Game* game = nullptr;
+    virtual ~BehaviourComponent();
+    virtual void start(FrameData& frameData);
+    virtual void update(FrameData& frameData);
+    virtual void reset(FrameData& frameData);
+    static bool key_pressed(int key);
 };
 
 class RotateBehaviour : public BehaviourComponent {
-    void update(const std::map<int, int>& keymap, FrameData& frameData) override;
+    void update(FrameData& frameData) override;
 };
+
+class MovementBehaviour : public BehaviourComponent {
+    void update(FrameData& frameData) override;
+};
+
+class CamFollowBehaviour : public BehaviourComponent {
+    void update(FrameData& frameData) override;
+};
+
+class DivingBehaviour : public BehaviourComponent {
+    float upperLimit = 1;
+    float lowerLimit = 0;
+    float current = 0;
+
+
+    void update(FrameData& frameData) override;
+};
+
+class ShootBehaviour : public BehaviourComponent {
+    bool ready = true;
+    void update(FrameData& frameData) override;
+};
+
+class BulletBehaviour : public BehaviourComponent {
+    glm::vec3 currentspeed;
+    float time = 3;
+    float speed = 10;
+    float timer = 0;
+    void start(FrameData& frameData) override;
+    void update(FrameData& frameData) override;
+};
+
 
 #include "GameObject.h"
 

@@ -20,7 +20,7 @@
 #include <map>
 #include "RenderInfo.h"
 
-
+struct Game;
 
 struct GameObject{
     std::string id = "node";
@@ -49,20 +49,21 @@ public:
     ~GameObject();
 
     void setVisible(bool visible);
-    void start(const std::map<int, int>& keymap, FrameData& frameData);
-    void update(const std::map<int, int>& keymap, FrameData& frameData);
-    void reset(const std::map<int, int>& keymap, FrameData& frameData);
+    void start(FrameData& frameData);
+    void update(FrameData& frameData);
+    void reset(FrameData& frameData);
     void setRotation(glm::vec3 rot);
 
-    void addComponent(BehaviourComponent* component);
+    void addComponent(BehaviourComponent* component, Game* game);
     void addChild(GameObject* child, bool setParent=true);
     void removeChild(GameObject* child);
     void setParent(GameObject* parent, bool addChild=true);
     void move(glm::vec3 dir);
     void rotate(float deg, glm::vec3 axis);
     void set_static(bool state);
-    glm::vec3 to_world(glm::vec3 vector, int point_or_vec) const;
-
+    [[nodiscard]] glm::mat4 get_world_rotation_matrix() const;
+    [[nodiscard]] glm::vec3 to_world(glm::vec3 vector, int point_or_vec) const;
+    [[nodiscard]] glm::vec3 GameObject::getWorldPos() const;
     [[nodiscard]] GameObject* getParent() const;
     [[nodiscard]] const std::vector<GameObject*>& getChildren() const;
     [[nodiscard]] glm::mat4 getModelMatrix() const;

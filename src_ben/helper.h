@@ -39,13 +39,4 @@ void print(T str) {
     std::cout << str;
 }
 
-
-
-
-template <typename T>
-void partheader(T header) {
-    println("\n--------");
-    println(header);
-    println("--------");
-}
 #endif //INC_28_MODEL_LOADING_CPP_HELPER_H

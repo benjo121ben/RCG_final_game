@@ -31,18 +31,25 @@ GameObject::~GameObject(){
     for(auto child : children){
         delete child;
     }
-    for(auto comp : components){
-        delete comp;
+    for(int i{0}; i < componentsize;i++){
+        delete components[i];
     }
+    if(parent) parent->removeChild(this);
 }
 
-void GameObject::addComponent(BehaviourComponent* component){
+void GameObject::addComponent(BehaviourComponent* component, Game* game){
     if(componentsize == 5) {
+        delete component;
         throw std::runtime_error("TRYING TO ADD A FIFTH COMPONENT");
     }
     components[componentsize] = component;
     component->gameObject = this;
+    component->game = game;
     componentsize++;
+}
+
+glm::vec3 GameObject::getWorldPos() const{
+    return glm::vec3(getModelMatrix()[3]);
 }
 
 
@@ -99,19 +106,24 @@ const std::vector<GameObject*>& GameObject::getChildren() const{
     return children;
 }
 
-void GameObject::start(const std::map<int, int>& keymap, FrameData& frameData) {
-    for (int i{0}; i < componentsize; ++i) { components[i]->start(keymap, frameData); }
+void GameObject::start(FrameData& frameData) {
+    for (int i{0}; i < componentsize; ++i) { components[i]->start(frameData); }
 }
 
-void GameObject::update(const std::map<int, int>& keymap, FrameData& frameData) {
-    for (int i{0}; i < componentsize; ++i) { components[i]->update(keymap, frameData); }
+void GameObject::update(FrameData& frameData) {
+    for (int i{0}; i < componentsize; ++i) { components[i]->update(frameData); }
 }
 
-void GameObject::reset(const std::map<int, int>& keymap, FrameData& frameData) {
-    for (int i{0}; i < componentsize; ++i) { components[i]->reset(keymap, frameData); }
+void GameObject::reset(FrameData& frameData) {
+    for (int i{0}; i < componentsize; ++i) { components[i]->reset(frameData); }
 }
 
 void GameObject::setRotation(glm::vec3 rot) {this->rotation = glm::eulerAngleXYZ(glm::radians(rot.x), glm::radians(rot.y), glm::radians(rot.z));}
+
+glm::mat4 GameObject::get_world_rotation_matrix() const{
+    if(parent) return parent->rotation * rotation;
+    else return rotation;
+}
 
 glm::vec3 GameObject::to_world(glm::vec3 vector, int point_or_vec) const{
     return glm::vec3(getModelMatrix() * glm::vec4(vector, point_or_vec));
