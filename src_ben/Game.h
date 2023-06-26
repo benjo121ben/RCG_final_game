@@ -29,6 +29,7 @@ struct Game {
     GameObject *InstantiateGameObject(std::string id, const glm::vec3 &pos);
 
     void scheduleGameObjectRemoval(GameObject *);
+
     void destroyScheduledGameObjects();
 
     void mainLoop();

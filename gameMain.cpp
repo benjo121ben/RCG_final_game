@@ -135,7 +135,7 @@ int main() {
         GameObject* map = game.InstantiateGameObjectBeforeStart("map", glm::vec3(0));
         GameObject* tank = game.InstantiateGameObjectBeforeStart("tank", glm::vec3(2,0,0));
         GameObject* tankhead = game.InstantiateGameObjectBeforeStart("tankhead", glm::vec3(0,0.2f,0));
-        GameObject* muzzle = game.InstantiateGameObjectBeforeStart("tankhead", glm::vec3(0,0,0));
+        GameObject* muzzle = game.InstantiateGameObjectBeforeStart("muzzle", glm::vec3(0,0,0));
         GameObject* tankheadVisual = game.InstantiateGameObjectBeforeStart("tankhead_vis", glm::vec3(0,0,0));
         tankhead->setParent(tank);
         tankheadVisual->setParent(tankhead);
@@ -156,7 +156,6 @@ int main() {
         tankhead->addComponent(new RotateBehaviour(), &game);
         muzzle->addComponent(new ShootBehaviour(), &game);
         muzzle->addComponent(new CamFollowBehaviour(), &game);
-        muzzle->addComponent(new DivingBehaviour(), &game);
 
 
         //start game loop

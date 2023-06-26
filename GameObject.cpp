@@ -121,7 +121,7 @@ void GameObject::reset(FrameData& frameData) {
 void GameObject::setRotation(glm::vec3 rot) {this->rotation = glm::eulerAngleXYZ(glm::radians(rot.x), glm::radians(rot.y), glm::radians(rot.z));}
 
 glm::mat4 GameObject::get_world_rotation_matrix() const{
-    if(parent) return parent->rotation * rotation;
+    if(parent) return parent->get_world_rotation_matrix() * rotation;
     else return rotation;
 }
 

@@ -33,23 +33,21 @@ class CamFollowBehaviour : public BehaviourComponent {
     void update(FrameData& frameData) override;
 };
 
-class DivingBehaviour : public BehaviourComponent {
+class ShootBehaviour : public BehaviourComponent {
     float upperLimit = 1;
     float lowerLimit = 0;
     float current = 0;
-
-
-    void update(FrameData& frameData) override;
-};
-
-class ShootBehaviour : public BehaviourComponent {
     bool ready = true;
     void update(FrameData& frameData) override;
 };
 
 class BulletBehaviour : public BehaviourComponent {
+public:
+    BulletBehaviour(float angle);
+private:
+    float angle = 0;
     glm::vec3 currentspeed;
-    float time = 3;
+    float time = 5;
     float speed = 10;
     float timer = 0;
     void start(FrameData& frameData) override;
