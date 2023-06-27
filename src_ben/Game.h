@@ -5,6 +5,7 @@
 #ifndef INC_28_MODEL_LOADING_CPP_GAME_H
 #define INC_28_MODEL_LOADING_CPP_GAME_H
 #include "framedata.h"
+#include "bounds.h"
 #include <queue>
 
 struct Renderer;
@@ -17,6 +18,8 @@ struct Game {
     inline static std::map<int, int> keymap = std::map<int,int>();
     Renderer *renderer;
     std::queue<GameObject*> removalQueue;
+    std::vector<CircleBound> circleBounds;
+    std::vector<CubeBound> cubeBounds;
 
     explicit Game(Renderer *renderer);
 

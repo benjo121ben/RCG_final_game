@@ -8,6 +8,8 @@
 #include "helper.h"
 #include "deltaTime.h"
 #include "GameObject.h"
+#include "BehaviourComponent.h"
+#include "bounds.h"
 #include "glm/gtx/euler_angles.hpp"
 
 void GameObject::do_for_all_nodes(GameObject* node, std::function< void(GameObject*) >& lambda){
@@ -34,6 +36,8 @@ GameObject::~GameObject(){
     for(int i{0}; i < componentsize;i++){
         delete components[i];
     }
+    if(test) delete test;
+    if(test2) delete test2;
     if(parent) parent->removeChild(this);
 }
 
@@ -57,7 +61,7 @@ void GameObject::addChild(GameObject* child, bool setParent) {
     if(child == this) throw std::runtime_error("trying to add object as its own child");
     for(auto it{children.begin()}; it != children.end(); ++it){
         if(*it == child){
-            println("already child");
+            println(child->id + " is already child of " + this->id);
             return;
         }
     }
@@ -65,14 +69,12 @@ void GameObject::addChild(GameObject* child, bool setParent) {
     if(setParent){
         child->setParent(this, false);
     }
-    println("child added", child);
 }
 
 void GameObject::removeChild(GameObject* remChild) {
     int i = 0;
     for(auto it{children.begin()}; it != children.end(); ++it){
         if(*it == remChild){
-            println("ERASED", *it);
             if ((*it)->parent == this){
                 (*it)->parent = nullptr;
             }
@@ -81,7 +83,6 @@ void GameObject::removeChild(GameObject* remChild) {
         }
         i++;
     }
-    println("NONE ERASED");
 }
 
 void GameObject::setParent(GameObject* newparent, bool addChild) {
@@ -146,6 +147,9 @@ glm::mat4 GameObject::getModelMatrix() const {
     if(this->is_static()){
         return model_cache;
     }
+    if(isRoot){
+        return glm::mat4(1);
+    }
     if(!parent) {
         return glm::scale(
                  glm::translate(
@@ -171,6 +175,18 @@ void GameObject::set_static(bool state){
         model_cache = getModelMatrix();
     }
     this->static_state = state;
+}
+
+CircleBound* GameObject::addCirclebound() {
+    if(test) return test;
+    test = new CircleBound(this);
+    return test;
+}
+
+CubeBound* GameObject::addCubebound() {
+    if(test2) return test2;
+    test2 = new CubeBound(this);
+    return test2;
 }
 
 

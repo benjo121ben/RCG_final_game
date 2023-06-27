@@ -6,7 +6,6 @@
 #include "BehaviourComponent.h"
 #include "deltaTime.h"
 #include "Game.h"
-#include "glm/gtx/string_cast.hpp"
 
 BehaviourComponent::~BehaviourComponent() = default;
 void BehaviourComponent::start(FrameData& frameData){}
@@ -75,7 +74,6 @@ void BulletBehaviour::update(FrameData& frameData) {
     timer += deltaTime();
     if(time < timer){
         game->scheduleGameObjectRemoval(gameObject);
-        std::cout << "destroy bullet\n";
         return;
     }
 

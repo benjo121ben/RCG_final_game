@@ -7,6 +7,7 @@
 #include "Game.h"
 #include "helper.h"
 #include "deltaTime.h"
+#include "BehaviourComponent.h"
 
 int gameMap[10][10]{
         {1,1,1,1,1,1,1,1,1,1},
@@ -21,7 +22,7 @@ int gameMap[10][10]{
         {1,1,1,1,1,1,1,1,1,1}
 };
 
-Game::Game(Renderer* renderer) : renderer{renderer} {}
+Game::Game(Renderer* renderer) : renderer{renderer} {rootNode.isRoot = true;}
 
 GameObject* Game::InstantiateGameObjectBeforeStart(const glm::vec3 &pos) {
     auto test = new GameObject(pos);
@@ -126,11 +127,6 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
 }
 
 
-
-struct test{
-    std::string a;
-};
-
 int main() {
     Renderer renderer;
     Game game{&renderer};
@@ -154,6 +150,17 @@ int main() {
         tankheadVisual->setParent(tankhead);
         muzzle->setParent(tankhead);
         tankheadVisual->scale = glm::vec3(0.5f);
+        GameObject* test1 = game.InstantiateGameObjectBeforeStart("test1", glm::vec3(scaleX/2,1,scaleZ/2));
+        game.createRenderInfo(*test1, 2, 1);
+        GameObject* test2 = game.InstantiateGameObjectBeforeStart("test2", glm::vec3(scaleX/2+1.001f,1,scaleZ/2));
+        game.createRenderInfo(*test2, 2, 1);
+        CircleBound* bound = test1->addCirclebound();
+        CircleBound* bound2 = test2->addCirclebound();
+
+        println(bound->getWorldPoint());
+        println(bound2->getWorldPoint());
+        println(CircleBound::circle_circle(bound,bound2)? "HIT":"NOT HIT");
+
 
         Camera& cam = game.frameData.camera;
         cam.position = glm::vec3(0,5,5);
@@ -210,3 +217,19 @@ int main() {
 
 
 
+
+void println(glm::vec3 vector){
+    std::cout << glm::to_string(vector) << "\n";
+}
+
+void println(glm::mat4 mat) {
+    std::cout << glm::to_string(mat) << "\n";
+}
+
+void println(std::string str, glm::mat4 mat) {
+    std::cout << str << " " << glm::to_string(mat) << "\n";
+}
+
+void println(std::string str, glm::vec3 vector) {
+    std::cout << str << " " << glm::to_string(vector) << "\n";
+}
