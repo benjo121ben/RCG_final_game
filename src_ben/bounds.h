@@ -27,7 +27,7 @@ struct CubeBound{
 };
 
 struct CircleBound{
-public:
+    bool trigger = false;
     glm::vec3 point = glm::vec3(0);
     float radius = 0.5f;
     GameObject* gameObject = nullptr;

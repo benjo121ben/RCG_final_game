@@ -33,7 +33,7 @@ class RotationBehaviour : public BehaviourComponent {
 
 class MovementBehaviour : public BehaviourComponent {
     int key = -1;
-    float speed = 10.0f;
+    float speed = 2.0f;
     void update(FrameData& frameData) override;
 };
 
@@ -65,6 +65,7 @@ class BulletBehaviour : public BehaviourComponent {
 public:
     BulletBehaviour(float angle);
 private:
+    bool activeHitbox = false;
     float angle = 0;
     glm::vec3 currentspeed;
     float time = 5;

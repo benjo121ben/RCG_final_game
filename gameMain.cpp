@@ -98,6 +98,26 @@ void Game::check_hitboxes(){
             if (CircleBound::circle_circle(circleBounds[currentBound], circleBounds[nextBound])) {
                 circleBounds[currentBound]->gameObject->onHit(frameData);
                 circleBounds[nextBound]->gameObject->onHit(frameData);
+                if(!circleBounds[currentBound]->trigger && !circleBounds[nextBound]->trigger){
+                    if(circleBounds[currentBound]->gameObject->is_static()){
+                        auto pos1 = circleBounds[currentBound]->getWorldPoint();
+                        auto rad1 = circleBounds[currentBound]->radius;
+                        auto pos2 = circleBounds[nextBound]->getWorldPoint();
+                        auto rad2 = circleBounds[nextBound]->radius;
+                        float distance = glm::distance(pos1,pos2);
+                        glm::vec3 dir = glm::normalize(pos2 - pos1);
+                        circleBounds[nextBound]->gameObject->move(dir * ((rad1+rad2) - distance));
+                    }
+                    else{
+                        auto pos1 = circleBounds[nextBound]->getWorldPoint();
+                        auto rad1 = circleBounds[nextBound]->radius;
+                        auto pos2 = circleBounds[currentBound]->getWorldPoint();
+                        auto rad2 = circleBounds[currentBound]->radius;
+                        float distance = glm::distance(pos1,pos2);
+                        glm::vec3 dir = glm::normalize(pos2 - pos1);
+                        circleBounds[currentBound]->gameObject->move(dir * ((rad1+rad2)- distance));
+                    }
+                }
             }
         }
     }
@@ -189,13 +209,15 @@ int main() {
         GameObject* tankhead = game.InstantiateGameObjectBeforeStart("tankhead", glm::vec3(0,0.2f,0));
         GameObject* muzzle = game.InstantiateGameObjectBeforeStart("muzzle", glm::vec3(0,0,0));
         GameObject* tankheadVisual = game.InstantiateGameObjectBeforeStart("tankhead_vis", glm::vec3(0,0,0));
+        tank->addCirclebound(&game);
+        tank->getCirclebound()->radius = 0.4f;
         tankhead->setParent(tank);
         tankheadVisual->setParent(tankhead);
         muzzle->setParent(tankhead);
         tankheadVisual->scale = glm::vec3(0.5f);
 
         //targets
-        createTarget(game, scaleX/2, 1,  scaleZ/2-2);
+        createTarget(game, scaleX/2, 0,  scaleZ/2-2);
         GameObject *target2 = createTarget(game, scaleX/2+3.5f, 1,  scaleZ/2-2);
         target2->addComponent(new BackAndForthBehaviour(), &game);
 
@@ -214,12 +236,16 @@ int main() {
                     GameObject* obst = game.InstantiateGameObjectBeforeStart("obst" + std::to_string(row) + "," + std::to_string(col), glm::vec3(row*scaleX/10,2.5,col*scaleZ/10));
                     obst->scale = glm::vec3(scaleX/10,5,scaleZ/10);
                     game.createRenderInfo(*obst, 1, 2);
+                    obst->set_static(true);
                 }
 
                 if(gameMap[row][col] == 2){
                     GameObject* obst = game.InstantiateGameObjectBeforeStart("obst" + std::to_string(row) + "," + std::to_string(col), glm::vec3(row*scaleX/10,0,col*scaleZ/10));
-                    obst->scale = glm::vec3(1.2f,1.3f,1.6f);
-                    game.createRenderInfo(*obst, 1, 2);
+                    obst->scale = glm::vec3(2);
+                    CircleBound* hitbox = obst->addCirclebound(&game);
+                    hitbox->radius = 1;
+                    game.createRenderInfo(*obst, 1, 1);
+                    obst->set_static(true);
                 }
             }
         }

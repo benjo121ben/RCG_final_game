@@ -32,19 +32,19 @@ void RotationBehaviour::update(FrameData& frameData) {
 void MovementBehaviour::update(FrameData& frameData) {
     if(key_pressed(GLFW_KEY_W)) gameObject->move(glm::normalize(gameObject->to_world(glm::vec3(0,0,1), 0)) * -speed * deltaTime());
     if(key_pressed(GLFW_KEY_S)) gameObject->move(glm::normalize(gameObject->to_world(glm::vec3(0,0,1), 0)) * speed * deltaTime());
-    if(key == -1 && key_pressed(GLFW_KEY_LEFT_CONTROL)) {
-        speed--;
-        println("speed", speed);
-        key = 0;
-    }
-    if(key == -1 && key_pressed(GLFW_KEY_LEFT_SHIFT)) {
-        speed++;
-        println("speed", speed);
-        key = 1;
-    }
-    if((!key_pressed(GLFW_KEY_LEFT_CONTROL) && key == 0) || (!key_pressed(GLFW_KEY_LEFT_SHIFT) && key == 1)){
-        key = -1;
-    }
+    // if(key == -1 && key_pressed(GLFW_KEY_LEFT_CONTROL)) {
+    //     speed--;
+    //     println("speed", speed);
+    //     key = 0;
+    // }
+    // if(key == -1 && key_pressed(GLFW_KEY_LEFT_SHIFT)) {
+    //     speed++;
+    //     println("speed", speed);
+    //     key = 1;
+    // }
+    // if((!key_pressed(GLFW_KEY_LEFT_CONTROL) && key == 0) || (!key_pressed(GLFW_KEY_LEFT_SHIFT) && key == 1)){
+    //     key = -1;
+    // }
     if(key_pressed(GLFW_KEY_D)) {
         gameObject->rotate(-90, glm::vec3(0, 1, 0));
     }
@@ -54,7 +54,7 @@ void MovementBehaviour::update(FrameData& frameData) {
 }
 
 void CamFollowBehaviour::update(FrameData& frameData) {
-    frameData.camera.position = gameObject->to_world(glm::vec3(0),1) + gameObject->to_world(glm::vec3(0,0.45f,1), 0);
+    frameData.camera.position = gameObject->to_world(glm::vec3(0),1) + gameObject->to_world(glm::vec3(0,0.45f,1.3f), 0);
     frameData.camera.target = gameObject->to_world(glm::vec3(0,0.28f,0), 1);
 }
 
@@ -93,9 +93,9 @@ void ShootBehaviour::update(FrameData& frameData) {
         bulletParent->rotation = gameObject->get_world_rotation_matrix();
         game->createRenderInfo(*bulletVisual, 0, 1);
         bulletParent->addComponent(new BulletBehaviour(current), game);
+        bulletParent->addComponent(new DisappearOnHitBehaviour(), game);
         bulletVisual->addComponent(new RotationBehaviour(), game);
-        CircleBound* hitbox = bulletParent->addCirclebound(game);
-        hitbox->radius = 0.25f;
+
         bulletParent->start(frameData);
     }
     if(!key_pressed(GLFW_KEY_SPACE) && !ready) {
@@ -117,6 +117,11 @@ void BulletBehaviour::update(FrameData& frameData) {
     if(time < timer){
         game->scheduleGameObjectRemoval(gameObject);
         return;
+    }
+    if(timer > 0.1f){
+        CircleBound* hitbox = gameObject->addCirclebound(game);
+        hitbox->radius = 0.25f;
+        hitbox->trigger = true;
     }
 
 }
