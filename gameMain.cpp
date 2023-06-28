@@ -22,34 +22,43 @@ int gameMap[10][10]{
         {1,1,1,1,1,1,1,1,1,1}
 };
 
-Game::Game(Renderer* renderer) : renderer{renderer} {rootNode.isRoot = true;}
+GameObject *createTarget(Game &game, float x, float y, float z) {
+    GameObject* target = game.InstantiateGameObjectBeforeStart("target", glm::vec3(x,y,z));
+    target->addComponent(new DisappearOnHitBehaviour(), &game);
+    game.createRenderInfo(*target, 2, 1);
+    CircleBound* bound = target->addCirclebound(&game);
+    return target;
+}
+
+Game::Game(Renderer* renderer) : renderer{renderer} { rootNode = new GameObject(); rootNode->isRoot = true;}
+Game::~Game() { delete rootNode;}
 
 GameObject* Game::InstantiateGameObjectBeforeStart(const glm::vec3 &pos) {
     auto test = new GameObject(pos);
-    rootNode.addChild(test);
+    rootNode->addChild(test);
     return test;
 }
 
 GameObject* Game::InstantiateGameObjectBeforeStart(std::string& id, const glm::vec3 &pos) {
     auto test = new GameObject(id, pos);
-    rootNode.addChild(test);
+    rootNode->addChild(test);
     return test;
 }
 GameObject* Game::InstantiateGameObjectBeforeStart(std::string id, const glm::vec3 &pos) {
     auto test = new GameObject(std::move(id), pos);
-    rootNode.addChild(test);
+    rootNode->addChild(test);
     return test;
 }
 
 GameObject* Game::InstantiateGameObject(std::string& id, const glm::vec3 &pos) {
     auto test = new GameObject(id, pos);
-    rootNode.addChild(test);
+    rootNode->addChild(test);
     test->start(frameData);
     return test;
 }
 GameObject* Game::InstantiateGameObject(std::string id, const glm::vec3 &pos) {
     auto test = new GameObject(std::move(id), pos);
-    rootNode.addChild(test);
+    rootNode->addChild(test);
     test->start(frameData);
     return test;
 }
@@ -57,35 +66,70 @@ GameObject* Game::InstantiateGameObject(std::string id, const glm::vec3 &pos) {
 
 
 void Game::mainLoop() {
+    float physicsTimer = 0;
     bool firstFrame{true};
     while (!glfwWindowShouldClose(renderer->window)) {
         glfwPollEvents();
-        if (firstFrame && !rootNode.getChildren().empty()) {
-            for(auto& child : rootNode.getChildren()){
+        if (firstFrame && !rootNode->getChildren().empty()) {
+            for(auto& child : rootNode->getChildren()){
                 std::function<void(GameObject*)> start_lambda = [&](GameObject* a) {a->start(frameData);};
                 GameObject::do_for_all_nodes(child, start_lambda);
             }
         }
         firstFrame = false;
-        for(auto& child : rootNode.getChildren()){
+        for(auto& child : rootNode->getChildren()){
             std::function<void(GameObject*)> update_lambda = [&](GameObject* a) {a->update(frameData);};
             GameObject::do_for_all_nodes(child, update_lambda);
         }
+        physicsTimer += deltaTime();
+        if(physicsTimer > 0.02f) {
+            check_hitboxes();
+        }
         resetFrameTime();
-        renderer->drawFrame(rootNode, frameData.camera);
+        renderer->drawFrame(*rootNode, frameData.camera);
         destroyScheduledGameObjects();
     }
     vkDeviceWaitIdle(renderer->device);
 }
 
+void Game::check_hitboxes(){
+    for (int currentBound{0}; currentBound < circleBounds.size(); currentBound++) {
+        for (int nextBound{currentBound + 1}; nextBound < circleBounds.size(); nextBound++) {
+            if (CircleBound::circle_circle(circleBounds[currentBound], circleBounds[nextBound])) {
+                circleBounds[currentBound]->gameObject->onHit(frameData);
+                circleBounds[nextBound]->gameObject->onHit(frameData);
+            }
+        }
+    }
+}
+
 void Game::destroyScheduledGameObjects(){
     while(!removalQueue.empty()){
         auto obj = removalQueue.front();
+        println("deleted ", obj->id);
         removalQueue.pop();
         if(obj->renderInfo){
             renderer->cleanupRenderInfo(obj->renderInfo);
             delete obj->renderInfo;
             obj->renderInfo = nullptr;
+        }
+        if(obj->test){
+            for(auto it{circleBounds.begin()}; it != circleBounds.end(); ++it){
+                if(*it == obj->test){
+                    println("DELETED BOUND");
+                    circleBounds.erase(it);
+                    return;
+                }
+            }
+        }
+        if(obj->test2){
+            for(auto it{cubeBounds.begin()}; it != cubeBounds.end(); ++it){
+                if(*it == obj->test2){
+                    println("DELETED BOUND");
+                    cubeBounds.erase(it);
+                    return;
+                }
+            }
         }
         delete obj;
     }
@@ -99,7 +143,7 @@ void Game::cleanupGameObjectRenderMemory(){
             obj->renderInfo = nullptr;
         }
     };
-    for(auto& obj : rootNode.getChildren()) {
+    for(auto& obj : rootNode->getChildren()) {
         GameObject::do_for_all_nodes(obj, deleteLambda);
     }
 }
@@ -133,14 +177,13 @@ int main() {
 
 
     try {
-        //setup
+        //setup renderer
         renderer.model_paths = {"viking_room.obj", "sphere.obj", "cube.obj", "tank.obj", "map.obj"};
         renderer.texture_paths = {"viking_room.png", "white.jpeg", "red.jpeg", "green.jpeg", "blue.jpeg", "test.png"};
         renderer.init();
         glfwSetKeyCallback(renderer.window, Game::key_callback);
 
-        //obj setup
-        //GameObject* map = game.InstantiateGameObjectBeforeStart("map", glm::vec3(0));
+        //tank setup
         float scaleX = 50, scaleZ = 50;
         GameObject* tank = game.InstantiateGameObjectBeforeStart("tank", glm::vec3(scaleX/2,0,scaleZ/2));
         GameObject* tankhead = game.InstantiateGameObjectBeforeStart("tankhead", glm::vec3(0,0.2f,0));
@@ -150,17 +193,11 @@ int main() {
         tankheadVisual->setParent(tankhead);
         muzzle->setParent(tankhead);
         tankheadVisual->scale = glm::vec3(0.5f);
-        GameObject* test1 = game.InstantiateGameObjectBeforeStart("test1", glm::vec3(scaleX/2,1,scaleZ/2));
-        game.createRenderInfo(*test1, 2, 1);
-        GameObject* test2 = game.InstantiateGameObjectBeforeStart("test2", glm::vec3(scaleX/2+1.001f,1,scaleZ/2));
-        game.createRenderInfo(*test2, 2, 1);
-        CircleBound* bound = test1->addCirclebound();
-        CircleBound* bound2 = test2->addCirclebound();
 
-        println(bound->getWorldPoint());
-        println(bound2->getWorldPoint());
-        println(CircleBound::circle_circle(bound,bound2)? "HIT":"NOT HIT");
-
+        //targets
+        createTarget(game, scaleX/2, 1,  scaleZ/2-2);
+        GameObject *target2 = createTarget(game, scaleX/2+3.5f, 1,  scaleZ/2-2);
+        target2->addComponent(new BackAndForthBehaviour(), &game);
 
         Camera& cam = game.frameData.camera;
         cam.position = glm::vec3(0,5,5);
@@ -194,7 +231,7 @@ int main() {
         game.createRenderInfo(*tank, 2, 3);
         game.createRenderInfo(*tankheadVisual, 3, 3);
         tank->addComponent(new MovementBehaviour(), &game);
-        tankhead->addComponent(new RotateBehaviour(), &game);
+        tankhead->addComponent(new RotationMovementBehaviour(), &game);
         muzzle->addComponent(new ShootBehaviour(), &game);
         muzzle->addComponent(new CamFollowBehaviour(), &game);
 

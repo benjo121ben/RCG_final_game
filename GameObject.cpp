@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <utility>
 #include <map>
+#include "Game.h"
 #include "helper.h"
 #include "deltaTime.h"
 #include "GameObject.h"
@@ -72,7 +73,6 @@ void GameObject::addChild(GameObject* child, bool setParent) {
 }
 
 void GameObject::removeChild(GameObject* remChild) {
-    int i = 0;
     for(auto it{children.begin()}; it != children.end(); ++it){
         if(*it == remChild){
             if ((*it)->parent == this){
@@ -81,7 +81,6 @@ void GameObject::removeChild(GameObject* remChild) {
             children.erase(it);
             return;
         }
-        i++;
     }
 }
 
@@ -117,6 +116,10 @@ void GameObject::update(FrameData& frameData) {
 
 void GameObject::reset(FrameData& frameData) {
     for (int i{0}; i < componentsize; ++i) { components[i]->reset(frameData); }
+}
+
+void GameObject::onHit(FrameData &frameData) {
+    for (int i{0}; i < componentsize; ++i) { components[i]->onHit(frameData); }
 }
 
 void GameObject::setRotation(glm::vec3 rot) {this->rotation = glm::eulerAngleXYZ(glm::radians(rot.x), glm::radians(rot.y), glm::radians(rot.z));}
@@ -177,15 +180,25 @@ void GameObject::set_static(bool state){
     this->static_state = state;
 }
 
-CircleBound* GameObject::addCirclebound() {
+CircleBound* GameObject::addCirclebound(Game* game) {
     if(test) return test;
     test = new CircleBound(this);
+    game->circleBounds.push_back(test);
     return test;
 }
 
-CubeBound* GameObject::addCubebound() {
+CubeBound* GameObject::addCubebound(Game* game) {
     if(test2) return test2;
     test2 = new CubeBound(this);
+    game->cubeBounds.push_back(test2);
+    return test2;
+}
+
+CircleBound* GameObject::getCirclebound() {
+    return test;
+}
+
+CubeBound* GameObject::getCubebound() {
     return test2;
 }
 

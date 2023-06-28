@@ -9,19 +9,21 @@
 #include <queue>
 
 struct Renderer;
-
+struct GameObject;
+struct GLFWwindow;
 
 
 struct Game {
-    GameObject rootNode;
+    GameObject *rootNode;
     FrameData frameData;
     inline static std::map<int, int> keymap = std::map<int,int>();
     Renderer *renderer;
     std::queue<GameObject*> removalQueue;
-    std::vector<CircleBound> circleBounds;
-    std::vector<CubeBound> cubeBounds;
+    std::vector<CircleBound *> circleBounds;
+    std::vector<CubeBound *> cubeBounds;
 
     explicit Game(Renderer *renderer);
+    ~Game();
 
     GameObject *InstantiateGameObjectBeforeStart(const glm::vec3 &pos);
 
@@ -38,6 +40,8 @@ struct Game {
     void destroyScheduledGameObjects();
 
     void mainLoop();
+
+    void check_hitboxes();
 
     void cleanupGameObjectRenderMemory();
 

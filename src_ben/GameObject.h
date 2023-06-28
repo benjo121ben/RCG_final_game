@@ -58,11 +58,14 @@ public:
     void start(FrameData& frameData);
     void update(FrameData& frameData);
     void reset(FrameData& frameData);
+    void onHit(FrameData& frameData);
     void setRotation(glm::vec3 rot);
 
     void addComponent(BehaviourComponent* component, Game* game);
-    CircleBound* addCirclebound();
-    CubeBound* addCubebound();
+    CircleBound* addCirclebound(Game* game);
+    CircleBound* getCirclebound();
+    CubeBound* addCubebound(Game* game);
+    CubeBound* getCubebound();
     void addChild(GameObject* child, bool setParent=true);
     void removeChild(GameObject* child);
     void setParent(GameObject* parent, bool addChild=true);

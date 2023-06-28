@@ -18,18 +18,38 @@ struct BehaviourComponent {
     virtual void start(FrameData& frameData);
     virtual void update(FrameData& frameData);
     virtual void reset(FrameData& frameData);
+    virtual void onHit(FrameData& frameData);
     static bool key_pressed(int key);
 };
 
-class RotateBehaviour : public BehaviourComponent {
+class RotationMovementBehaviour : public BehaviourComponent {
     void update(FrameData& frameData) override;
 };
 
-class MovementBehaviour : public BehaviourComponent {
+class RotationBehaviour : public BehaviourComponent {
     void update(FrameData& frameData) override;
+};
+
+
+class MovementBehaviour : public BehaviourComponent {
+    int key = -1;
+    float speed = 10.0f;
+    void update(FrameData& frameData) override;
+};
+
+class DisappearOnHitBehaviour : public BehaviourComponent {
+    void onHit(FrameData& frameData) override;
 };
 
 class CamFollowBehaviour : public BehaviourComponent {
+    void update(FrameData& frameData) override;
+};
+
+class BackAndForthBehaviour : public BehaviourComponent {
+    float upperLimit = 1;
+    float lowerLimit = 0;
+    float current = 0;
+    int state = 1;
     void update(FrameData& frameData) override;
 };
 

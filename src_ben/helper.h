@@ -18,6 +18,11 @@ void println(T str) {
     std::cout << str << "\n";
 }
 
+template <typename T, typename D>
+void println(T str, D str2) {
+    std::cout << str << " " << str2 << "\n";
+}
+
 template <typename T>
 void print(T str) {
     std::cout << str;

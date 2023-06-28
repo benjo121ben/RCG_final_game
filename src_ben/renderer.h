@@ -1448,7 +1448,7 @@ private:
 
     void updateUniformBuffer(const GameObject& obj, Camera& camera, uint32_t currentImage) {
         //starts a timer
-        if(!obj.renderInfo || obj.is_static()) return;
+        if(!obj.renderInfo) return;
         static auto startTime = std::chrono::high_resolution_clock::now();
 
         auto currentTime = std::chrono::high_resolution_clock::now();
