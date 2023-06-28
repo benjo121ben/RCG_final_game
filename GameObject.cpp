@@ -137,11 +137,6 @@ void GameObject::move(glm::vec3 dir) {position += dir;}
 
 void GameObject::rotate(float deg, glm::vec3 axis) {rotation = glm::rotate(glm::mat4(rotation), glm::radians(deg) * deltaTime(), axis);}
 
-void GameObject::setVisible(bool visible){
-    if(!renderInfo) return;
-    renderInfo->visible = visible;
-}
-
 bool GameObject::is_static() const{
     return static_state;
 }

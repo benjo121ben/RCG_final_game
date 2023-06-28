@@ -8,6 +8,10 @@
 #include "helper.h"
 #include "deltaTime.h"
 #include "BehaviourComponent.h"
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 
 int gameMap[10][10]{
         {1,1,1,1,1,1,1,1,1,1},
@@ -69,6 +73,7 @@ void Game::mainLoop() {
     float physicsTimer = 0;
     bool firstFrame{true};
     while (!glfwWindowShouldClose(renderer->window)) {
+        //println("begin Frame", deltaTime());
         glfwPollEvents();
         if (firstFrame && !rootNode->getChildren().empty()) {
             for(auto& child : rootNode->getChildren()){
@@ -76,18 +81,24 @@ void Game::mainLoop() {
                 GameObject::do_for_all_nodes(child, start_lambda);
             }
         }
+        //println("start", deltaTime());
         firstFrame = false;
         for(auto& child : rootNode->getChildren()){
             std::function<void(GameObject*)> update_lambda = [&](GameObject* a) {a->update(frameData);};
             GameObject::do_for_all_nodes(child, update_lambda);
         }
+        //println("update", deltaTime());
         physicsTimer += deltaTime();
         if(physicsTimer > 0.02f) {
             check_hitboxes();
+            //println("physics", deltaTime());
+            physicsTimer = 0;
         }
         resetFrameTime();
         renderer->drawFrame(*rootNode, frameData.camera);
+        //println("draw", deltaTime());
         destroyScheduledGameObjects();
+        //println("destroy", deltaTime());
     }
     vkDeviceWaitIdle(renderer->device);
 }
@@ -124,15 +135,14 @@ void Game::check_hitboxes(){
 }
 
 void Game::destroyScheduledGameObjects(){
+    std::function<void(GameObject*)> deleteRenderInfoLambda = [&](GameObject* obj){
+        cleanupSingleGameObjectRenderInfo(obj);
+    };
     while(!removalQueue.empty()){
         auto obj = removalQueue.front();
         println("deleted ", obj->id);
         removalQueue.pop();
-        if(obj->renderInfo){
-            renderer->cleanupRenderInfo(obj->renderInfo);
-            delete obj->renderInfo;
-            obj->renderInfo = nullptr;
-        }
+        GameObject::do_for_all_nodes(obj, deleteRenderInfoLambda);
         if(obj->test){
             for(auto it{circleBounds.begin()}; it != circleBounds.end(); ++it){
                 if(*it == obj->test){
@@ -155,16 +165,17 @@ void Game::destroyScheduledGameObjects(){
     }
 }
 
-void Game::cleanupGameObjectRenderMemory(){
+void Game::cleanupAllGameObjectRenderMemory() const{
     std::function<void(GameObject*)> deleteLambda = [&](GameObject* obj){
-        if(obj->renderInfo){
-            renderer->cleanupRenderInfo(obj->renderInfo);
-            delete obj->renderInfo;
-            obj->renderInfo = nullptr;
-        }
+        cleanupSingleGameObjectRenderInfo(obj);
     };
-    for(auto& obj : rootNode->getChildren()) {
-        GameObject::do_for_all_nodes(obj, deleteLambda);
+    GameObject::do_for_all_nodes(rootNode, deleteLambda);
+}
+
+void Game::cleanupSingleGameObjectRenderInfo(GameObject * obj) const{
+    if(obj->renderInfo){
+        renderer->addRenderInfo(obj->renderInfo);
+        obj->renderInfo = nullptr;
     }
 }
 
@@ -172,12 +183,11 @@ void Game::scheduleGameObjectRemoval(GameObject * obj){
     removalQueue.push(obj);
 }
 
-void Game::createRenderInfo(GameObject& obj, uint32_t textureIndex, uint32_t modelIndex) {
+void Game::createRenderInfo(GameObject& obj, uint32_t textureIndex, uint32_t modelIndex) const {
     if(obj.renderInfo) {
         throw std::runtime_error("creating RenderInfo on a gameObject that already has one");
     }
-    obj.renderInfo = new RenderInfo;
-    renderer->createRenderInfo(obj.renderInfo, textureIndex, modelIndex);
+    obj.renderInfo = renderer->getRenderInfo(textureIndex, modelIndex);
 }
 
 void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -268,13 +278,13 @@ int main() {
         game.mainLoop();
 
         //cleanup
-        game.cleanupGameObjectRenderMemory();
+        game.cleanupAllGameObjectRenderMemory();
         renderer.cleanup();
     } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-
+    _CrtDumpMemoryLeaks();
     return EXIT_SUCCESS;
 }
 

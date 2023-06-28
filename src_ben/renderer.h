@@ -31,6 +31,7 @@
 #include <optional>
 #include <any>
 #include <set>
+#include <stack>
 #include <unordered_map>
 #include "GameObject.h"
 #include "Mesh.h"
@@ -115,6 +116,7 @@ public:
     VkDevice device;
 
 private:
+    std::stack<RenderInfo *> renderInfos;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -167,25 +169,20 @@ public:
         initVulkan();
     }
 
-    void createRenderInfo(RenderInfo* renderInfo, uint32_t textureIndex, uint32_t modelIndex) {
-        if (textureIndex < 0 || modelIndex < 0 || textureIndex >= texture_paths.size() || modelIndex >= model_paths.size()){
-            throw std::runtime_error("creating RenderInfo with invalid model or texture");
-        }
-        renderInfo->textureIndex = textureIndex;
-        renderInfo->modelIndex = modelIndex;
-        createUniformBuffers(renderInfo);
-        createDescriptorPool(renderInfo);
-        createDescriptorSets(renderInfo);
+    RenderInfo* getRenderInfo(uint32_t textureIndex, uint32_t modelIndex){
+        auto ret =  renderInfos.top();
+        renderInfos.pop();
+        ret->textureIndex = textureIndex;
+        ret->modelIndex = modelIndex;
+        allocateDescriptorSet(ret);
+        return ret;
     }
 
-    void cleanupRenderInfo(RenderInfo* renderInfo) const{
-        if (!renderInfo) return;
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroyBuffer(device, renderInfo->uniformBuffers[i], nullptr);
-            vkFreeMemory(device, renderInfo->uniformBuffersMemory[i], nullptr);
-        }
-        vkDestroyDescriptorPool(device, renderInfo->descriptorPool, nullptr);
+    void addRenderInfo(RenderInfo* info){
+        renderInfos.push(info);
     }
+
+
 
     void drawFrame(const GameObject& rootNode, Camera& camera) {
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -256,7 +253,6 @@ public:
 
     void cleanup() {
         cleanupSwapChain();
-
         vkDestroyPipeline(device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         vkDestroyRenderPass(device, renderPass, nullptr);
@@ -287,6 +283,12 @@ public:
             vkFreeMemory(device, mesh.vertexBufferMemory, nullptr);
         }
 
+        while(!renderInfos.empty()){
+            cleanupRenderInfo(renderInfos.top());
+            delete renderInfos.top();
+            renderInfos.pop();
+        }
+
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -310,6 +312,15 @@ public:
         glfwTerminate();
     }
 private:
+    void cleanupRenderInfo(RenderInfo* renderInfo) const{
+        if (!renderInfo) return;
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroyBuffer(device, renderInfo->uniformBuffers[i], nullptr);
+            vkFreeMemory(device, renderInfo->uniformBuffersMemory[i], nullptr);
+        }
+        vkDestroyDescriptorPool(device, renderInfo->descriptorPool, nullptr);
+    }
+
     void initWindow() {
         glfwInit();
 
@@ -324,6 +335,8 @@ private:
         auto app = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
+
+
 
     void initVulkan() {
         createInstance();
@@ -352,6 +365,10 @@ private:
             loadMesh(pathNr);
             createVertexBuffer(&meshList[pathNr]);
             createIndexBuffer(&meshList[pathNr]);
+        }
+        for(int i{0}; i <200; ++i){
+            auto render = createRenderInfo();
+            renderInfos.push(render);
         }
         createCommandBuffers();
         createSyncObjects();
@@ -477,6 +494,14 @@ private:
         if (physicalDevice == VK_NULL_HANDLE) {
             throw std::runtime_error("failed to find a suitable GPU!");
         }
+    }
+
+    RenderInfo* createRenderInfo() {
+        auto renderInfo = new RenderInfo();
+        createUniformBuffers(renderInfo);
+        createDescriptorPool(renderInfo);
+        createDescriptorSets(renderInfo);
+        return renderInfo;
     }
 
     void createLogicalDevice() {
@@ -1201,6 +1226,10 @@ private:
             throw std::runtime_error("failed to allocate descriptor sets 2!");
         }
 
+        allocateDescriptorSet(renderInfo);
+    }
+
+    void allocateDescriptorSet(const RenderInfo *renderInfo) {
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = renderInfo->uniformBuffers[i];

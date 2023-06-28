@@ -33,7 +33,7 @@ class RotationBehaviour : public BehaviourComponent {
 
 class MovementBehaviour : public BehaviourComponent {
     int key = -1;
-    float speed = 2.0f;
+    float speed = 5.0f;
     void update(FrameData& frameData) override;
 };
 

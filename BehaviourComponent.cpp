@@ -30,8 +30,21 @@ void RotationBehaviour::update(FrameData& frameData) {
 
 
 void MovementBehaviour::update(FrameData& frameData) {
-    if(key_pressed(GLFW_KEY_W)) gameObject->move(glm::normalize(gameObject->to_world(glm::vec3(0,0,1), 0)) * -speed * deltaTime());
-    if(key_pressed(GLFW_KEY_S)) gameObject->move(glm::normalize(gameObject->to_world(glm::vec3(0,0,1), 0)) * speed * deltaTime());
+    float moveDir = 0;
+    if(key_pressed(GLFW_KEY_W)) {
+        moveDir = -1;
+    }
+    if(key_pressed(GLFW_KEY_S)) {
+        moveDir += 1;
+    }
+    if (moveDir != 0){
+        auto dir = glm::normalize(gameObject->to_world(glm::vec3(0, 0, 1), 0)) * moveDir * speed * deltaTime();
+        auto newPos = gameObject->getWorldPos() + dir;
+        if(newPos.x > 42.5f || newPos.x < 2.75f || newPos.z > 42.5f || newPos.z < 2.75f){
+            return;
+        }
+        gameObject->move(dir);
+    }
     // if(key == -1 && key_pressed(GLFW_KEY_LEFT_CONTROL)) {
     //     speed--;
     //     println("speed", speed);

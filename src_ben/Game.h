@@ -14,11 +14,13 @@ struct GLFWwindow;
 
 
 struct Game {
+private:
+    std::queue<GameObject*> removalQueue;
+public:
     GameObject *rootNode;
     FrameData frameData;
     inline static std::map<int, int> keymap = std::map<int,int>();
     Renderer *renderer;
-    std::queue<GameObject*> removalQueue;
     std::vector<CircleBound *> circleBounds;
     std::vector<CubeBound *> cubeBounds;
 
@@ -43,9 +45,10 @@ struct Game {
 
     void check_hitboxes();
 
-    void cleanupGameObjectRenderMemory();
+    void cleanupAllGameObjectRenderMemory() const;
+    void cleanupSingleGameObjectRenderInfo(GameObject * obj) const;
 
-    void createRenderInfo(GameObject& obj, uint32_t textureIndex, uint32_t modelIndex);
+    void createRenderInfo(GameObject& obj, uint32_t textureIndex, uint32_t modelIndex) const;
 
     static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 };

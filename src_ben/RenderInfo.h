@@ -7,7 +7,6 @@
 struct RenderInfo{
     uint32_t textureIndex;
     uint32_t modelIndex;
-    bool visible = true;
     std::vector<struct VkDescriptorSet_T *> descriptorSets;
     std::vector<struct VkDescriptorSet_T *> descriptorSets_benji;
     std::vector<struct VkBuffer_T *> uniformBuffers;
