@@ -147,7 +147,6 @@ void BulletBehaviour::update(FrameData& frameData) {
     timer += deltaTime();
 
     if(time < timer || gameObject->getCirclebound() != nullptr && gameObject->getWorldPos().y - gameObject->getCirclebound()->radius <= 0){
-        println("BULLET CALLED", gameObject->id);
         game->scheduleGameObjectRemoval(gameObject);
         enabled = false;
         return;
@@ -171,7 +170,6 @@ void EnemyBulletBehaviour::update(FrameData &frameData) {
     gameObject->move(currentspeed * deltaTime());
     timer += deltaTime();
     if(time < timer || gameObject->getCirclebound() != nullptr && gameObject->getWorldPos().y - gameObject->getCirclebound()->radius <= 0){
-        println("EnemyBulletBehaviour CALLED", gameObject->id);
         game->scheduleGameObjectRemoval(gameObject);
         enabled = false;
         return;
@@ -186,7 +184,6 @@ void EnemyBulletBehaviour::update(FrameData &frameData) {
 
 void DisappearOnHitBehaviour::onHit(FrameData &frameData, bool otherIsStatic) {
     if(!enabled) return;
-    println("DISAPPEAR CALLED", gameObject->id);
     game->scheduleGameObjectRemoval(gameObject);
     enabled = false;
 }
