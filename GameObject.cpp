@@ -14,10 +14,10 @@
 #include "glm/gtx/euler_angles.hpp"
 
 void GameObject::do_for_all_nodes(GameObject* node, std::function< void(GameObject*) >& lambda){
-    lambda(node);
     for(auto& child : node->getChildren()){
         do_for_all_nodes(child, lambda);
     }
+    lambda(node);
 }
 
 GameObject::GameObject() = default;
@@ -37,8 +37,8 @@ GameObject::~GameObject(){
     for(int i{0}; i < componentsize;i++){
         delete components[i];
     }
-    if(test) delete test;
-    if(test2) delete test2;
+    if(circleBound) delete circleBound;
+    if(cubeBound) delete cubeBound;
     if(parent) {
         parent->removeChild(this);
     }
@@ -178,25 +178,25 @@ void GameObject::set_static(bool state){
 }
 
 CircleBound* GameObject::addCirclebound(Game* game) {
-    if(test) return test;
-    test = new CircleBound(this);
-    game->circleBounds.push_back(test);
-    return test;
+    if(circleBound) return circleBound;
+    circleBound = new CircleBound(this);
+    game->circleBounds.push_back(circleBound);
+    return circleBound;
 }
 
 CubeBound* GameObject::addCubebound(Game* game) {
-    if(test2) return test2;
-    test2 = new CubeBound(this);
-    game->cubeBounds.push_back(test2);
-    return test2;
+    if(cubeBound) return cubeBound;
+    cubeBound = new CubeBound(this);
+    game->cubeBounds.push_back(cubeBound);
+    return cubeBound;
 }
 
 CircleBound* GameObject::getCirclebound() {
-    return test;
+    return circleBound;
 }
 
 CubeBound* GameObject::getCubebound() {
-    return test2;
+    return cubeBound;
 }
 
 

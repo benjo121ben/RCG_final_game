@@ -113,19 +113,20 @@ void ShootBehaviour::update(FrameData& frameData) {
     }
 
 }
-
-EnemyTargetBehaviour::EnemyTargetBehaviour(GameObject* player, float time) : player{player}, time{time}{}
+int EnemyTargetBehaviour::nr = 0;
+EnemyTargetBehaviour::EnemyTargetBehaviour(float time) : time{time}{}
 void EnemyTargetBehaviour::update(FrameData& frameData){
     timer += deltaTime();
-    if(timer > time){
+    if(timer > time && game->player != nullptr){
         timer = 0;
-        GameObject* bulletParent = game->InstantiateGameObject("bulletparent", glm::vec3(gameObject->getWorldPos()));
-        GameObject* bulletVisual = game->InstantiateGameObject("bulletvisual", glm::vec3(0));
+        GameObject* bulletParent = game->InstantiateGameObject("bulletparent" + std::to_string(nr), glm::vec3(gameObject->getWorldPos()));
+        GameObject* bulletVisual = game->InstantiateGameObject("bulletvisual" + std::to_string(nr), glm::vec3(0));
+        nr++;
         bulletVisual->setParent(bulletParent);
         bulletVisual->scale = glm::vec3(0.5f);
         bulletParent->rotation = gameObject->get_world_rotation_matrix();
         game->createRenderInfo(*bulletVisual, 0, 1);
-        bulletParent->addComponent(new EnemyBulletBehaviour(player->getWorldPos() - gameObject->getWorldPos()), game);
+        bulletParent->addComponent(new EnemyBulletBehaviour(game->player->getWorldPos() - gameObject->getWorldPos()), game);
         bulletParent->addComponent(new DisappearOnHitBehaviour(), game);
         bulletVisual->addComponent(new RotationBehaviour(), game);
         bulletParent->start(frameData);
@@ -139,6 +140,7 @@ void BulletBehaviour::start(FrameData &frameData) {
 }
 
 void BulletBehaviour::update(FrameData& frameData) {
+    if(!enabled)return;
     currentspeed += gameObject->to_world(glm::vec3(0,-9.81,0.01f),0) * deltaTime();
     gameObject->move(currentspeed * deltaTime());
     timer += deltaTime();
@@ -146,6 +148,7 @@ void BulletBehaviour::update(FrameData& frameData) {
     if(time < timer || gameObject->getCirclebound() !=
                                nullptr && gameObject->getWorldPos().y - gameObject->getCirclebound()->radius <= 0){
         game->scheduleGameObjectRemoval(gameObject);
+        enabled = false;
         return;
     }
     if(timer > 0.1f && !activeHitbox){
@@ -162,6 +165,7 @@ EnemyBulletBehaviour::EnemyBulletBehaviour(glm::vec3 dir) : BulletBehaviour(0), 
 
 void EnemyBulletBehaviour::start(FrameData &frameData) {currentspeed = dir * speed;}
 void EnemyBulletBehaviour::update(FrameData &frameData) {
+    if(!enabled)return;
     currentspeed += dir * deltaTime();
     gameObject->move(currentspeed * deltaTime());
     timer += deltaTime();
@@ -179,12 +183,17 @@ void EnemyBulletBehaviour::update(FrameData &frameData) {
 }
 
 void DisappearOnHitBehaviour::onHit(FrameData &frameData, bool otherIsStatic) {
+    if(!enabled)return;
     game->scheduleGameObjectRemoval(gameObject);
+    enabled = false;
 }
 
 void HealthBehaviour::onHit(FrameData &frameData, bool otherIsStatic) {
-    if(otherIsStatic) return;
+    if(otherIsStatic || !enabled) return;
     health--;
-    if(health == 0) game->scheduleGameObjectRemoval(gameObject);
+    if(health == 0) {
+        game->scheduleGameObjectRemoval(gameObject);
+        enabled = false;
+    }
 }
 

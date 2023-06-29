@@ -25,8 +25,8 @@ struct CircleBound;
 struct CubeBound;
 
 struct GameObject{
-    CircleBound* test = nullptr;
-    CubeBound* test2 = nullptr;
+    CircleBound* circleBound = nullptr;
+    CubeBound* cubeBound = nullptr;
     std::string id = "node";
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1);

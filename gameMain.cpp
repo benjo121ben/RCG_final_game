@@ -1,16 +1,15 @@
 //
 // Created by benja on 22/06/2023.
 //
-
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
 #include "renderer.h"
 #include "GameObject.h"
 #include "Game.h"
 #include "helper.h"
 #include "deltaTime.h"
 #include "BehaviourComponent.h"
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
 
 
 int gameMap[10][10]{
@@ -34,7 +33,7 @@ GameObject *createTarget(Game &game, float x, float y, float z) {
     return target;
 }
 
-Game::Game(Renderer* renderer) : renderer{renderer} { rootNode = new GameObject(); rootNode->isRoot = true;}
+Game::Game(Renderer* renderer) : renderer{renderer} { rootNode = new GameObject(); rootNode->isRoot = true; rootNode->id = "ROOT";}
 Game::~Game() { delete rootNode;}
 
 GameObject* Game::InstantiateGameObjectBeforeStart(const glm::vec3 &pos) {
@@ -73,7 +72,7 @@ void Game::mainLoop() {
     float physicsTimer = 0;
     bool firstFrame{true};
     while (!glfwWindowShouldClose(renderer->window)) {
-        //println("begin Frame", deltaTime());
+        //println("begin Frame");
         glfwPollEvents();
         if (firstFrame && !rootNode->getChildren().empty()) {
             for(auto& child : rootNode->getChildren()){
@@ -81,23 +80,24 @@ void Game::mainLoop() {
                 GameObject::do_for_all_nodes(child, start_lambda);
             }
         }
-        //println("start", deltaTime());
+        //println("start done");
         firstFrame = false;
         for(auto& child : rootNode->getChildren()){
             std::function<void(GameObject*)> update_lambda = [&](GameObject* a) {a->update(frameData);};
             GameObject::do_for_all_nodes(child, update_lambda);
         }
-        //println("update", deltaTime());
+        //println("update done");
         physicsTimer += deltaTime();
         if(physicsTimer > 0.02f) {
             check_hitboxes();
-            //println("physics", deltaTime());
+            //println("physics done");
             physicsTimer = 0;
         }
         resetFrameTime();
         renderer->drawFrame(*rootNode, frameData.camera);
-        //println("draw", deltaTime());
+        //println("before CLEANUP");
         destroyScheduledGameObjects();
+        //println("didn't crash in CLEANUP");
         //println("destroy", deltaTime());
     }
     vkDeviceWaitIdle(renderer->device);
@@ -136,33 +136,39 @@ void Game::check_hitboxes(){
 }
 
 void Game::destroyScheduledGameObjects(){
-    std::function<void(GameObject*)> deleteRenderInfoLambda = [&](GameObject* obj){
-        cleanupSingleGameObjectRenderInfo(obj);
-    };
     while(!removalQueue.empty()){
         auto obj = removalQueue.front();
-        //println("deleted ", obj->id);
         removalQueue.pop();
-        GameObject::do_for_all_nodes(obj, deleteRenderInfoLambda);
-        if(obj->test){
+        if(obj == nullptr) throw std::runtime_error("HOW DID IT GET HERE?");
+        //println("deleted ", obj->id);
+        cleanupSingleGameObjectRenderInfo(obj);
+        //println("before circleBOunds", obj->id);
+        if(obj->circleBound){
             for(auto it{circleBounds.begin()}; it != circleBounds.end(); ++it){
-                if(*it == obj->test){
+                if(*it == obj->circleBound){
                     //println("DELETED BOUND");
                     circleBounds.erase(it);
                     break;
                 }
             }
         }
-        if(obj->test2){
+        //println("before cubeBounds", obj->id);
+        if(obj->cubeBound){
             for(auto it{cubeBounds.begin()}; it != cubeBounds.end(); ++it){
-                if(*it == obj->test2){
+                if(*it == obj->cubeBound){
                     //println("DELETED BOUND");
                     cubeBounds.erase(it);
                     break;
                 }
             }
         }
+        //println("before player", obj->id);
+        if (this->player == obj){
+            player = nullptr;
+        }
+        //println("delete", obj->id);
         delete obj;
+        //println("deleteDOne");
     }
 }
 
@@ -181,7 +187,11 @@ void Game::cleanupSingleGameObjectRenderInfo(GameObject * obj) const{
 }
 
 void Game::scheduleGameObjectRemoval(GameObject * obj){
-    removalQueue.push(obj);
+    std::function<void(GameObject*)> queueRemoval = [&](GameObject* obj) {
+        removalQueue.push(obj);
+    };
+    GameObject::do_for_all_nodes(obj, queueRemoval);
+    obj->parent = nullptr;
 }
 
 void Game::createRenderInfo(GameObject& obj, uint32_t textureIndex, uint32_t modelIndex) const {
@@ -226,22 +236,22 @@ void spawnMap(Game &game, float scaleX, float scaleZ, int row, int col) {
         case 3:{
             GameObject *target = createTarget(game, row * scaleX / 10, 2, col * scaleZ / 10);
             target->addComponent(new BackAndForthBehaviour(target->position, target->position + glm::vec3((row%3), 1, (col%2)), (row%3) + col%3 * 0.2f), &game);
-            target->addComponent(new EnemyTargetBehaviour(game.player, 5 + (row%2) * 0.3f + (col%2) * 0.2f), &game);
+            target->addComponent(new EnemyTargetBehaviour(5 + (row%2) * 0.3f + (col%2) * 0.2f), &game);
             target->id = "target3" + std::to_string(row) + ":" + std::to_string(col);
             break;
         }
 
         case 4:{
-            GameObject* testEnemy = createTarget(game, row*scaleX/10, 4,  col*scaleZ/10);
+            GameObject* testEnemy = createTarget(game, row*scaleX/10, 3,  col*scaleZ/10);
             testEnemy->addComponent(new BackAndForthBehaviour(testEnemy->position, testEnemy->position + glm::vec3((row%2) * 0.3f, 3, (col%3) * 0.3f), (row%3)*0.2f + col%3 * 0.3f), &game);
-            testEnemy->addComponent(new EnemyTargetBehaviour(game.player, 5 + (row%3) * 0.3f - (col%2) * 0.2f), &game);
+            testEnemy->addComponent(new EnemyTargetBehaviour(5 + (row%3) * 0.3f - (col%2) * 0.2f), &game);
             testEnemy->id = "testEnemy4" + std::to_string(row) + ":" + std::to_string(col);
             break;
         }
         case 5:{
             GameObject *target = createTarget(game, row * scaleX / 10, 2, col * scaleZ / 10);
             target->addComponent(new BackAndForthBehaviour(target->position, target->position + glm::vec3((row%2) * 0.3f, 1, (col%2) * 0.3f), (row%3)*0.3f + col%3 * 0.4f), &game);
-            target->addComponent(new EnemyTargetBehaviour(game.player, 5 - (row%2) * 0.3f + (col%3) * 0.2f), &game);
+            target->addComponent(new EnemyTargetBehaviour(5 - (row%2) * 0.3f + (col%3) * 0.2f), &game);
             target->id = "target3" + std::to_string(row) + ":" + std::to_string(col);
             break;
         }

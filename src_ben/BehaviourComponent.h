@@ -12,6 +12,7 @@ struct Game;
 
 
 struct BehaviourComponent {
+    bool enabled = true;
     GameObject* gameObject = nullptr;
     Game* game = nullptr;
     virtual ~BehaviourComponent();
@@ -64,10 +65,10 @@ struct ShootBehaviour : public BehaviourComponent {
 };
 
 struct EnemyTargetBehaviour : public BehaviourComponent{
+    static int nr;
     float time = 5;
     float timer = 0;
-    explicit EnemyTargetBehaviour(GameObject* player, float time);
-    GameObject* player;
+    explicit EnemyTargetBehaviour(float time);
     void update(FrameData& frameData) override;
 
 };
