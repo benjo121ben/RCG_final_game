@@ -116,8 +116,9 @@ void ShootBehaviour::update(FrameData& frameData) {
 int EnemyTargetBehaviour::nr = 0;
 EnemyTargetBehaviour::EnemyTargetBehaviour(float time) : time{time}{}
 void EnemyTargetBehaviour::update(FrameData& frameData){
+    if(game->player == nullptr) return;
     timer += deltaTime();
-    if(timer > time && game->player != nullptr){
+    if(timer > time){
         timer = 0;
         GameObject* bulletParent = game->InstantiateGameObject("bulletparent" + std::to_string(nr), glm::vec3(gameObject->getWorldPos()));
         GameObject* bulletVisual = game->InstantiateGameObject("bulletvisual" + std::to_string(nr), glm::vec3(0));
@@ -145,8 +146,8 @@ void BulletBehaviour::update(FrameData& frameData) {
     gameObject->move(currentspeed * deltaTime());
     timer += deltaTime();
 
-    if(time < timer || gameObject->getCirclebound() !=
-                               nullptr && gameObject->getWorldPos().y - gameObject->getCirclebound()->radius <= 0){
+    if(time < timer || gameObject->getCirclebound() != nullptr && gameObject->getWorldPos().y - gameObject->getCirclebound()->radius <= 0){
+        println("BULLET CALLED", gameObject->id);
         game->scheduleGameObjectRemoval(gameObject);
         enabled = false;
         return;
@@ -169,9 +170,10 @@ void EnemyBulletBehaviour::update(FrameData &frameData) {
     currentspeed += dir * deltaTime();
     gameObject->move(currentspeed * deltaTime());
     timer += deltaTime();
-    if(time < timer || gameObject->getCirclebound() !=
-                       nullptr &&  gameObject->getWorldPos().y - gameObject->getCirclebound()->radius <= 0){
+    if(time < timer || gameObject->getCirclebound() != nullptr && gameObject->getWorldPos().y - gameObject->getCirclebound()->radius <= 0){
+        println("EnemyBulletBehaviour CALLED", gameObject->id);
         game->scheduleGameObjectRemoval(gameObject);
+        enabled = false;
         return;
     }
     if(timer > 0.1f && !activeHitbox){
@@ -183,7 +185,8 @@ void EnemyBulletBehaviour::update(FrameData &frameData) {
 }
 
 void DisappearOnHitBehaviour::onHit(FrameData &frameData, bool otherIsStatic) {
-    if(!enabled)return;
+    if(!enabled) return;
+    println("DISAPPEAR CALLED", gameObject->id);
     game->scheduleGameObjectRemoval(gameObject);
     enabled = false;
 }

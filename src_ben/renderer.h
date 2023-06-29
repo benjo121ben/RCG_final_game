@@ -198,14 +198,18 @@ public:
         }
 
         std::function<void(GameObject*)> updateLambda = [&](GameObject* a) { updateUniformBuffer(*a, camera, currentFrame);};
+        //std::cout << "update start\n";
         for(GameObject* obj : rootNode.getChildren()){
             GameObject::do_for_all_nodes(obj, updateLambda);
         }
+        //std::cout << "update end\n";
 
         vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
         vkResetCommandBuffer(commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+        //std::cout << "command start\n";
         recordCommandBuffer(commandBuffers[currentFrame], imageIndex, rootNode);
+        //std::cout << "command end\n";
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1415,11 +1419,12 @@ private:
             scissor.extent = swapChainExtent;
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-
+            //std::cout <<"start_lam\n";
             std::function<void(GameObject*)> drawLambda = [&](GameObject* a) { drawSingleObject(commandBuffer, *a);};
             for(GameObject* obj : rootNode.getChildren()){
                 GameObject::do_for_all_nodes(obj, drawLambda);
             }
+            //std::cout <<"end_lam\n";
 
 
 

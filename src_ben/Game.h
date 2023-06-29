@@ -15,7 +15,9 @@ struct GLFWwindow;
 
 struct Game {
 private:
-    std::queue<GameObject*> removalQueue;
+    std::vector<GameObject*> removalQueue;
+    int checkoutRound = 0;
+    size_t cycle = 0;
 public:
     GameObject *rootNode;
     GameObject *player;

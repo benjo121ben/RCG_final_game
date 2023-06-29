@@ -72,7 +72,7 @@ void Game::mainLoop() {
     float physicsTimer = 0;
     bool firstFrame{true};
     while (!glfwWindowShouldClose(renderer->window)) {
-        //println("begin Frame");
+        if(checkoutRound)println("begin Frame");
         glfwPollEvents();
         if (firstFrame && !rootNode->getChildren().empty()) {
             for(auto& child : rootNode->getChildren()){
@@ -80,25 +80,28 @@ void Game::mainLoop() {
                 GameObject::do_for_all_nodes(child, start_lambda);
             }
         }
-        //println("start done");
+        if(checkoutRound)println("start done");
         firstFrame = false;
         for(auto& child : rootNode->getChildren()){
             std::function<void(GameObject*)> update_lambda = [&](GameObject* a) {a->update(frameData);};
             GameObject::do_for_all_nodes(child, update_lambda);
         }
-        //println("update done");
+        if(checkoutRound)println("update done");
         physicsTimer += deltaTime();
+        resetFrameTime();
         if(physicsTimer > 0.02f) {
+            if(checkoutRound)println("physics start");
             check_hitboxes();
-            //println("physics done");
+            if(checkoutRound)println("physics done");
             physicsTimer = 0;
         }
-        resetFrameTime();
         renderer->drawFrame(*rootNode, frameData.camera);
-        //println("before CLEANUP");
+        if(checkoutRound)println("drawFrame", deltaTime());
         destroyScheduledGameObjects();
-        //println("didn't crash in CLEANUP");
-        //println("destroy", deltaTime());
+        if(checkoutRound)println("destroy", deltaTime());
+        if(checkoutRound)checkoutRound--;
+        cycle++;
+
     }
     vkDeviceWaitIdle(renderer->device);
 }
@@ -107,8 +110,10 @@ void Game::check_hitboxes(){
     for (int currentBound{0}; currentBound < circleBounds.size(); currentBound++) {
         for (int nextBound{currentBound + 1}; nextBound < circleBounds.size(); nextBound++) {
             if (CircleBound::circle_circle(circleBounds[currentBound], circleBounds[nextBound])) {
+                auto text {circleBounds[currentBound]->gameObject->id + " hit " +circleBounds[nextBound]->gameObject->id};
                 circleBounds[currentBound]->gameObject->onHit(frameData, circleBounds[nextBound]->gameObject->is_static());
                 circleBounds[nextBound]->gameObject->onHit(frameData, circleBounds[currentBound]->gameObject->is_static());
+                println(text);
                 if(!circleBounds[currentBound]->trigger && !circleBounds[nextBound]->trigger){
                     if(circleBounds[currentBound]->gameObject->is_static()){
                         auto pos1 = circleBounds[currentBound]->getWorldPoint();
@@ -136,40 +141,43 @@ void Game::check_hitboxes(){
 }
 
 void Game::destroyScheduledGameObjects(){
-    while(!removalQueue.empty()){
-        auto obj = removalQueue.front();
-        removalQueue.pop();
+    if(removalQueue.empty()) return;
+    checkoutRound = 2;
+    println("before CLEANUP");
+    for(GameObject* obj : removalQueue){
         if(obj == nullptr) throw std::runtime_error("HOW DID IT GET HERE?");
-        //println("deleted ", obj->id);
+        println("deleted ", obj->id);
         cleanupSingleGameObjectRenderInfo(obj);
-        //println("before circleBOunds", obj->id);
+        println("before circleBOunds", obj->id);
         if(obj->circleBound){
             for(auto it{circleBounds.begin()}; it != circleBounds.end(); ++it){
                 if(*it == obj->circleBound){
-                    //println("DELETED BOUND");
+                    println("DELETED BOUND");
                     circleBounds.erase(it);
                     break;
                 }
             }
         }
-        //println("before cubeBounds", obj->id);
+        println("before cubeBounds", obj->id);
         if(obj->cubeBound){
             for(auto it{cubeBounds.begin()}; it != cubeBounds.end(); ++it){
                 if(*it == obj->cubeBound){
-                    //println("DELETED BOUND");
+                    println("DELETED BOUND");
                     cubeBounds.erase(it);
                     break;
                 }
             }
         }
-        //println("before player", obj->id);
+        println("before player", obj->id);
         if (this->player == obj){
             player = nullptr;
         }
-        //println("delete", obj->id);
+        println("delete", obj->id);
         delete obj;
-        //println("deleteDOne");
+        println("deleteDOne");
     }
+    removalQueue.clear();
+    println("didn't crash in CLEANUP");
 }
 
 void Game::cleanupAllGameObjectRenderMemory() const{
@@ -187,10 +195,18 @@ void Game::cleanupSingleGameObjectRenderInfo(GameObject * obj) const{
 }
 
 void Game::scheduleGameObjectRemoval(GameObject * obj){
+    println("round", cycle);
+    println("QUEUED", obj->id);
     std::function<void(GameObject*)> queueRemoval = [&](GameObject* obj) {
-        removalQueue.push(obj);
+        for(auto it{removalQueue.begin()}; it != removalQueue.end(); ++it){
+            if(*it == obj){
+                return;
+            }
+        }
+        removalQueue.push_back(obj);
     };
     GameObject::do_for_all_nodes(obj, queueRemoval);
+    if(obj->parent)obj->parent->removeChild(obj);
     obj->parent = nullptr;
 }
 
