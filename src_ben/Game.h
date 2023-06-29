@@ -18,6 +18,7 @@ private:
     std::queue<GameObject*> removalQueue;
 public:
     GameObject *rootNode;
+    GameObject *player;
     FrameData frameData;
     inline static std::map<int, int> keymap = std::map<int,int>();
     Renderer *renderer;

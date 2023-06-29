@@ -71,21 +71,19 @@ void CamFollowBehaviour::update(FrameData& frameData) {
     frameData.camera.target = gameObject->to_world(glm::vec3(0,0.28f,0), 1);
 }
 
+BackAndForthBehaviour::BackAndForthBehaviour(glm::vec3 start, glm::vec3 end, float time) : startPos{start}, endPos{end}, time{time} {}
+
 void BackAndForthBehaviour::update(FrameData &frameData) {
-    gameObject->move(glm::vec3(state, 0,0) * deltaTime());
     current += state * deltaTime();
-    if(current >= 1) {
-        float difference = 1 - current;
+    if(current >= time) {
         current = 1;
         state = -1;
-        gameObject->move(glm::vec3(difference, 0,0));
     }
-    if(current <= -1){
-        float difference = -1 - current;
+    if(current <= -time){
         current = -1;
         state = 1;
-        gameObject->move(glm::vec3(difference, 0,0));
     }
+    gameObject->position = startPos + (endPos - startPos) * current/time;
 }
 
 void ShootBehaviour::update(FrameData& frameData) {
@@ -108,13 +106,30 @@ void ShootBehaviour::update(FrameData& frameData) {
         bulletParent->addComponent(new BulletBehaviour(current), game);
         bulletParent->addComponent(new DisappearOnHitBehaviour(), game);
         bulletVisual->addComponent(new RotationBehaviour(), game);
-
         bulletParent->start(frameData);
     }
     if(!key_pressed(GLFW_KEY_SPACE) && !ready) {
         ready = true;
     }
 
+}
+
+EnemyTargetBehaviour::EnemyTargetBehaviour(GameObject* player, float time) : player{player}, time{time}{}
+void EnemyTargetBehaviour::update(FrameData& frameData){
+    timer += deltaTime();
+    if(timer > time){
+        timer = 0;
+        GameObject* bulletParent = game->InstantiateGameObject("bulletparent", glm::vec3(gameObject->getWorldPos()));
+        GameObject* bulletVisual = game->InstantiateGameObject("bulletvisual", glm::vec3(0));
+        bulletVisual->setParent(bulletParent);
+        bulletVisual->scale = glm::vec3(0.5f);
+        bulletParent->rotation = gameObject->get_world_rotation_matrix();
+        game->createRenderInfo(*bulletVisual, 0, 1);
+        bulletParent->addComponent(new EnemyBulletBehaviour(player->getWorldPos() - gameObject->getWorldPos()), game);
+        bulletParent->addComponent(new DisappearOnHitBehaviour(), game);
+        bulletVisual->addComponent(new RotationBehaviour(), game);
+        bulletParent->start(frameData);
+    }
 }
 
 BulletBehaviour::BulletBehaviour(float angle) : angle{angle}{}
@@ -127,16 +142,40 @@ void BulletBehaviour::update(FrameData& frameData) {
     currentspeed += gameObject->to_world(glm::vec3(0,-9.81,0.01f),0) * deltaTime();
     gameObject->move(currentspeed * deltaTime());
     timer += deltaTime();
-    if(time < timer){
+
+    if(time < timer || gameObject->getCirclebound() !=
+                               nullptr && gameObject->getWorldPos().y - gameObject->getCirclebound()->radius <= 0){
         game->scheduleGameObjectRemoval(gameObject);
         return;
     }
-    if(timer > 0.1f){
+    if(timer > 0.1f && !activeHitbox){
         CircleBound* hitbox = gameObject->addCirclebound(game);
         hitbox->radius = 0.25f;
         hitbox->trigger = true;
+        activeHitbox = true;
     }
 
+
+}
+
+EnemyBulletBehaviour::EnemyBulletBehaviour(glm::vec3 dir) : BulletBehaviour(0), dir{glm::normalize(dir)}{}
+
+void EnemyBulletBehaviour::start(FrameData &frameData) {currentspeed = dir * speed;}
+void EnemyBulletBehaviour::update(FrameData &frameData) {
+    currentspeed += dir * deltaTime();
+    gameObject->move(currentspeed * deltaTime());
+    timer += deltaTime();
+    if(time < timer || gameObject->getCirclebound() !=
+                       nullptr &&  gameObject->getWorldPos().y - gameObject->getCirclebound()->radius <= 0){
+        game->scheduleGameObjectRemoval(gameObject);
+        return;
+    }
+    if(timer > 0.1f && !activeHitbox){
+        CircleBound* hitbox = gameObject->addCirclebound(game);
+        hitbox->radius = 0.25f;
+        hitbox->trigger = true;
+        activeHitbox = true;
+    }
 }
 
 void DisappearOnHitBehaviour::onHit(FrameData &frameData) {

@@ -15,14 +15,14 @@
 
 int gameMap[10][10]{
         {1,1,1,1,1,1,1,1,1,1},
-        {1,0,0,0,0,0,0,2,0,1},
-        {1,0,2,0,0,0,0,2,0,1},
-        {1,0,0,0,2,0,0,0,0,1},
-        {1,0,0,0,0,0,2,0,0,1},
-        {1,0,2,2,2,0,0,0,0,1},
-        {1,0,2,0,0,0,0,2,0,1},
-        {1,0,0,0,0,0,0,0,0,1},
-        {1,0,0,0,0,2,0,2,0,1},
+        {1,0,0,3,0,5,0,2,0,1},
+        {1,0,2,0,4,0,0,2,0,1},
+        {1,0,0,0,2,0,3,0,5,1},
+        {1,0,4,3,5,0,2,0,0,1},
+        {1,0,2,2,2,0,4,0,0,1},
+        {1,0,2,0,3,0,0,2,0,1},
+        {1,0,4,0,2,0,3,0,4,1},
+        {1,0,2,3,0,2,0,2,0,1},
         {1,1,1,1,1,1,1,1,1,1}
 };
 
@@ -148,7 +148,7 @@ void Game::destroyScheduledGameObjects(){
                 if(*it == obj->test){
                     println("DELETED BOUND");
                     circleBounds.erase(it);
-                    return;
+                    break;
                 }
             }
         }
@@ -157,7 +157,7 @@ void Game::destroyScheduledGameObjects(){
                 if(*it == obj->test2){
                     println("DELETED BOUND");
                     cubeBounds.erase(it);
-                    return;
+                    break;
                 }
             }
         }
@@ -201,6 +201,59 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
 }
 
 
+void spawnMap(Game &game, float scaleX, float scaleZ, int row, int col) {
+    println(std::to_string(row) + ":", col);
+    switch(gameMap[row][col]){
+        case 1:{
+            println("spawnMap1");
+            GameObject* obst = game.InstantiateGameObjectBeforeStart("obst" + std::to_string(row) + "," + std::to_string(col), glm::vec3(row*scaleX/10,2.5,col*scaleZ/10));
+            obst->scale = glm::vec3(scaleX/10,5,scaleZ/10);
+            game.createRenderInfo(*obst, 1, 2);
+            obst->set_static(true);
+            obst->id = "obst1" + std::to_string(row) + ":" + std::to_string(col);
+            break;
+        }
+        case 2:{
+            println("spawnMap2");
+            GameObject* obst = game.InstantiateGameObjectBeforeStart("obst" + std::to_string(row) + "," + std::to_string(col), glm::vec3(row*scaleX/10,0,col*scaleZ/10));
+            auto size = (row+col+1.0f)/6.0f;
+            obst->scale = glm::vec3(2 *size);
+            CircleBound* hitbox = obst->addCirclebound(&game);
+            hitbox->radius = size;
+            game.createRenderInfo(*obst, 1, 1);
+            obst->set_static(true);
+            obst->id = "obst2" + std::to_string(row) + ":" + std::to_string(col);
+            break;
+        }
+        case 3:{
+            println("spawnMap3");
+            GameObject *target = createTarget(game, row * scaleX / 10, 2, col * scaleZ / 10);
+            target->addComponent(new BackAndForthBehaviour(target->position, target->position + glm::vec3((row%3), 1, (col%2)), (row%3) + col%3 * 0.2f), &game);
+            target->addComponent(new EnemyTargetBehaviour(game.player, 5 + (row%2) * 0.3f + (col%2) * 0.2f), &game);
+            target->id = "target3" + std::to_string(row) + ":" + std::to_string(col);
+            break;
+        }
+
+        case 4:{
+            println("spawnMap4");
+            GameObject* testEnemy = createTarget(game, row*scaleX/10, 4,  col*scaleZ/10);
+            testEnemy->addComponent(new BackAndForthBehaviour(testEnemy->position, testEnemy->position + glm::vec3((row%2) * 0.3f, 3, (col%3) * 0.3f), (row%3)*0.2f + col%3 * 0.3f), &game);
+            testEnemy->addComponent(new EnemyTargetBehaviour(game.player, 5 + (row%3) * 0.3f - (col%2) * 0.2f), &game);
+            testEnemy->id = "testEnemy4" + std::to_string(row) + ":" + std::to_string(col);
+            break;
+        }
+        case 5:{
+            println("spawnMap3");
+            GameObject *target = createTarget(game, row * scaleX / 10, 2, col * scaleZ / 10);
+            target->addComponent(new BackAndForthBehaviour(target->position, target->position + glm::vec3((row%2) * 0.3f, 1, (col%2) * 0.3f), (row%3)*0.3f + col%3 * 0.4f), &game);
+            target->addComponent(new EnemyTargetBehaviour(game.player, 5 - (row%2) * 0.3f + (col%3) * 0.2f), &game);
+            target->id = "target3" + std::to_string(row) + ":" + std::to_string(col);
+            break;
+        }
+        default:{}
+    }
+}
+
 int main() {
     Renderer renderer;
     Game game{&renderer};
@@ -219,17 +272,20 @@ int main() {
         GameObject* tankhead = game.InstantiateGameObjectBeforeStart("tankhead", glm::vec3(0,0.2f,0));
         GameObject* muzzle = game.InstantiateGameObjectBeforeStart("muzzle", glm::vec3(0,0,0));
         GameObject* tankheadVisual = game.InstantiateGameObjectBeforeStart("tankhead_vis", glm::vec3(0,0,0));
+
         tank->addCirclebound(&game);
         tank->getCirclebound()->radius = 0.4f;
         tankhead->setParent(tank);
         tankheadVisual->setParent(tankhead);
         muzzle->setParent(tankhead);
         tankheadVisual->scale = glm::vec3(0.5f);
-
-        //targets
-        createTarget(game, scaleX/2, 0,  scaleZ/2-2);
-        GameObject *target2 = createTarget(game, scaleX/2+3.5f, 1,  scaleZ/2-2);
-        target2->addComponent(new BackAndForthBehaviour(), &game);
+        game.player = tank;
+        game.createRenderInfo(*tank, 2, 3);
+        game.createRenderInfo(*tankheadVisual, 3, 3);
+        tank->addComponent(new MovementBehaviour(), &game);
+        tankhead->addComponent(new RotationMovementBehaviour(), &game);
+        muzzle->addComponent(new ShootBehaviour(), &game);
+        muzzle->addComponent(new CamFollowBehaviour(), &game);
 
         Camera& cam = game.frameData.camera;
         cam.position = glm::vec3(0,5,5);
@@ -240,36 +296,19 @@ int main() {
         ground->scale = glm::vec3(scaleX,0,scaleZ);
         game.createRenderInfo(*ground, 3, 2);
 
+        println("HERE");
         for(int row{0}; row < 10; row++){
             for(int col{0}; col < 10; col++){
-                if(gameMap[row][col] == 1){
-                    GameObject* obst = game.InstantiateGameObjectBeforeStart("obst" + std::to_string(row) + "," + std::to_string(col), glm::vec3(row*scaleX/10,2.5,col*scaleZ/10));
-                    obst->scale = glm::vec3(scaleX/10,5,scaleZ/10);
-                    game.createRenderInfo(*obst, 1, 2);
-                    obst->set_static(true);
-                }
-
-                if(gameMap[row][col] == 2){
-                    GameObject* obst = game.InstantiateGameObjectBeforeStart("obst" + std::to_string(row) + "," + std::to_string(col), glm::vec3(row*scaleX/10,0,col*scaleZ/10));
-                    obst->scale = glm::vec3(2);
-                    CircleBound* hitbox = obst->addCirclebound(&game);
-                    hitbox->radius = 1;
-                    game.createRenderInfo(*obst, 1, 1);
-                    obst->set_static(true);
-                }
+                spawnMap(game, scaleX, scaleZ, row, col);
             }
         }
+        println("HERE2");
 
         //TEST
 
-        // map->setRotation(glm::vec3(-90.0f, 0.0f, -90.0f));
-        //game.createRenderInfo(*map, 1, 4);
-        game.createRenderInfo(*tank, 2, 3);
-        game.createRenderInfo(*tankheadVisual, 3, 3);
-        tank->addComponent(new MovementBehaviour(), &game);
-        tankhead->addComponent(new RotationMovementBehaviour(), &game);
-        muzzle->addComponent(new ShootBehaviour(), &game);
-        muzzle->addComponent(new CamFollowBehaviour(), &game);
+
+
+
 
 
         //start game loop

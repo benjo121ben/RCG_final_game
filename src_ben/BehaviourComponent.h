@@ -22,38 +22,40 @@ struct BehaviourComponent {
     static bool key_pressed(int key);
 };
 
-class RotationMovementBehaviour : public BehaviourComponent {
+struct RotationMovementBehaviour : public BehaviourComponent {
     void update(FrameData& frameData) override;
 };
 
-class RotationBehaviour : public BehaviourComponent {
+struct RotationBehaviour : public BehaviourComponent {
     void update(FrameData& frameData) override;
 };
 
 
-class MovementBehaviour : public BehaviourComponent {
+struct MovementBehaviour : public BehaviourComponent {
     int key = -1;
-    float speed = 5.0f;
+    float speed = 3.0f;
     void update(FrameData& frameData) override;
 };
 
-class DisappearOnHitBehaviour : public BehaviourComponent {
+struct DisappearOnHitBehaviour : public BehaviourComponent {
     void onHit(FrameData& frameData) override;
 };
 
-class CamFollowBehaviour : public BehaviourComponent {
+struct CamFollowBehaviour : public BehaviourComponent {
     void update(FrameData& frameData) override;
 };
 
-class BackAndForthBehaviour : public BehaviourComponent {
-    float upperLimit = 1;
-    float lowerLimit = 0;
+struct BackAndForthBehaviour : public BehaviourComponent {
+    glm::vec3 startPos;
+    glm::vec3 endPos;
+    float time;
     float current = 0;
     int state = 1;
+    BackAndForthBehaviour(glm::vec3 startPos, glm::vec3 endPos, float time);
     void update(FrameData& frameData) override;
 };
 
-class ShootBehaviour : public BehaviourComponent {
+struct ShootBehaviour : public BehaviourComponent {
     float upperLimit = 1;
     float lowerLimit = 0;
     float current = 0;
@@ -61,16 +63,30 @@ class ShootBehaviour : public BehaviourComponent {
     void update(FrameData& frameData) override;
 };
 
-class BulletBehaviour : public BehaviourComponent {
-public:
-    BulletBehaviour(float angle);
-private:
+struct EnemyTargetBehaviour : public BehaviourComponent{
+    float time = 5;
+    float timer = 0;
+    explicit EnemyTargetBehaviour(GameObject* player, float time);
+    GameObject* player;
+    void update(FrameData& frameData) override;
+
+};
+
+struct BulletBehaviour : public BehaviourComponent {
+    explicit BulletBehaviour(float angle);
     bool activeHitbox = false;
     float angle = 0;
     glm::vec3 currentspeed;
     float time = 5;
-    float speed = 10;
     float timer = 0;
+    void start(FrameData& frameData) override;
+    void update(FrameData& frameData) override;
+};
+
+struct EnemyBulletBehaviour: public BulletBehaviour {
+    glm::vec3 dir;
+    float speed = 10;
+    explicit EnemyBulletBehaviour(glm::vec3 dir);
     void start(FrameData& frameData) override;
     void update(FrameData& frameData) override;
 };

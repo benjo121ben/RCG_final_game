@@ -39,7 +39,9 @@ GameObject::~GameObject(){
     }
     if(test) delete test;
     if(test2) delete test2;
-    if(parent) parent->removeChild(this);
+    if(parent) {
+        parent->removeChild(this);
+    }
 }
 
 void GameObject::addComponent(BehaviourComponent* component, Game* game){
@@ -82,6 +84,7 @@ void GameObject::removeChild(GameObject* remChild) {
             return;
         }
     }
+    println("could not find");
 }
 
 void GameObject::setParent(GameObject* newparent, bool addChild) {
