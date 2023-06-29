@@ -12,7 +12,7 @@ BehaviourComponent::~BehaviourComponent() = default;
 void BehaviourComponent::start(FrameData& frameData){}
 void BehaviourComponent::update(FrameData& frameData){}
 void BehaviourComponent::reset(FrameData& frameData){}
-void BehaviourComponent::onHit(FrameData& frameData){}
+void BehaviourComponent::onHit(FrameData& frameData, bool otherIsStatic){}
 
 bool BehaviourComponent::key_pressed(int key){
     return Game::keymap.find(key) != Game::keymap.end() && Game::keymap.find(key)->second == 1;
@@ -178,7 +178,13 @@ void EnemyBulletBehaviour::update(FrameData &frameData) {
     }
 }
 
-void DisappearOnHitBehaviour::onHit(FrameData &frameData) {
+void DisappearOnHitBehaviour::onHit(FrameData &frameData, bool otherIsStatic) {
     game->scheduleGameObjectRemoval(gameObject);
+}
+
+void HealthBehaviour::onHit(FrameData &frameData, bool otherIsStatic) {
+    if(otherIsStatic) return;
+    health--;
+    if(health == 0) game->scheduleGameObjectRemoval(gameObject);
 }
 

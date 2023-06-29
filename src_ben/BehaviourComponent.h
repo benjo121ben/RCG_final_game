@@ -18,7 +18,7 @@ struct BehaviourComponent {
     virtual void start(FrameData& frameData);
     virtual void update(FrameData& frameData);
     virtual void reset(FrameData& frameData);
-    virtual void onHit(FrameData& frameData);
+    virtual void onHit(FrameData& frameData, bool otherIsStatic);
     static bool key_pressed(int key);
 };
 
@@ -38,7 +38,7 @@ struct MovementBehaviour : public BehaviourComponent {
 };
 
 struct DisappearOnHitBehaviour : public BehaviourComponent {
-    void onHit(FrameData& frameData) override;
+    void onHit(FrameData& frameData, bool otherIsStatic) override;
 };
 
 struct CamFollowBehaviour : public BehaviourComponent {
@@ -89,6 +89,11 @@ struct EnemyBulletBehaviour: public BulletBehaviour {
     explicit EnemyBulletBehaviour(glm::vec3 dir);
     void start(FrameData& frameData) override;
     void update(FrameData& frameData) override;
+};
+
+struct HealthBehaviour: public BehaviourComponent {
+    float health = 4;
+    void onHit(FrameData& frameData, bool otherIsStatic) override;
 };
 
 

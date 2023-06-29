@@ -58,7 +58,7 @@ public:
     void start(FrameData& frameData);
     void update(FrameData& frameData);
     void reset(FrameData& frameData);
-    void onHit(FrameData& frameData);
+    void onHit(FrameData& frameData, bool otherIsStatic);
     void setRotation(glm::vec3 rot);
 
     void addComponent(BehaviourComponent* component, Game* game);

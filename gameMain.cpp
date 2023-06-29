@@ -107,8 +107,8 @@ void Game::check_hitboxes(){
     for (int currentBound{0}; currentBound < circleBounds.size(); currentBound++) {
         for (int nextBound{currentBound + 1}; nextBound < circleBounds.size(); nextBound++) {
             if (CircleBound::circle_circle(circleBounds[currentBound], circleBounds[nextBound])) {
-                circleBounds[currentBound]->gameObject->onHit(frameData);
-                circleBounds[nextBound]->gameObject->onHit(frameData);
+                circleBounds[currentBound]->gameObject->onHit(frameData, circleBounds[nextBound]->gameObject->is_static());
+                circleBounds[nextBound]->gameObject->onHit(frameData, circleBounds[currentBound]->gameObject->is_static());
                 if(!circleBounds[currentBound]->trigger && !circleBounds[nextBound]->trigger){
                     if(circleBounds[currentBound]->gameObject->is_static()){
                         auto pos1 = circleBounds[currentBound]->getWorldPoint();
@@ -129,6 +129,7 @@ void Game::check_hitboxes(){
                         circleBounds[currentBound]->gameObject->move(dir * ((rad1+rad2)- distance));
                     }
                 }
+
             }
         }
     }
@@ -140,13 +141,13 @@ void Game::destroyScheduledGameObjects(){
     };
     while(!removalQueue.empty()){
         auto obj = removalQueue.front();
-        println("deleted ", obj->id);
+        //println("deleted ", obj->id);
         removalQueue.pop();
         GameObject::do_for_all_nodes(obj, deleteRenderInfoLambda);
         if(obj->test){
             for(auto it{circleBounds.begin()}; it != circleBounds.end(); ++it){
                 if(*it == obj->test){
-                    println("DELETED BOUND");
+                    //println("DELETED BOUND");
                     circleBounds.erase(it);
                     break;
                 }
@@ -155,7 +156,7 @@ void Game::destroyScheduledGameObjects(){
         if(obj->test2){
             for(auto it{cubeBounds.begin()}; it != cubeBounds.end(); ++it){
                 if(*it == obj->test2){
-                    println("DELETED BOUND");
+                    //println("DELETED BOUND");
                     cubeBounds.erase(it);
                     break;
                 }
@@ -202,10 +203,8 @@ void Game::key_callback(GLFWwindow* window, int key, int scancode, int action, i
 
 
 void spawnMap(Game &game, float scaleX, float scaleZ, int row, int col) {
-    println(std::to_string(row) + ":", col);
     switch(gameMap[row][col]){
         case 1:{
-            println("spawnMap1");
             GameObject* obst = game.InstantiateGameObjectBeforeStart("obst" + std::to_string(row) + "," + std::to_string(col), glm::vec3(row*scaleX/10,2.5,col*scaleZ/10));
             obst->scale = glm::vec3(scaleX/10,5,scaleZ/10);
             game.createRenderInfo(*obst, 1, 2);
@@ -214,7 +213,6 @@ void spawnMap(Game &game, float scaleX, float scaleZ, int row, int col) {
             break;
         }
         case 2:{
-            println("spawnMap2");
             GameObject* obst = game.InstantiateGameObjectBeforeStart("obst" + std::to_string(row) + "," + std::to_string(col), glm::vec3(row*scaleX/10,0,col*scaleZ/10));
             auto size = (row+col+1.0f)/6.0f;
             obst->scale = glm::vec3(2 *size);
@@ -226,7 +224,6 @@ void spawnMap(Game &game, float scaleX, float scaleZ, int row, int col) {
             break;
         }
         case 3:{
-            println("spawnMap3");
             GameObject *target = createTarget(game, row * scaleX / 10, 2, col * scaleZ / 10);
             target->addComponent(new BackAndForthBehaviour(target->position, target->position + glm::vec3((row%3), 1, (col%2)), (row%3) + col%3 * 0.2f), &game);
             target->addComponent(new EnemyTargetBehaviour(game.player, 5 + (row%2) * 0.3f + (col%2) * 0.2f), &game);
@@ -235,7 +232,6 @@ void spawnMap(Game &game, float scaleX, float scaleZ, int row, int col) {
         }
 
         case 4:{
-            println("spawnMap4");
             GameObject* testEnemy = createTarget(game, row*scaleX/10, 4,  col*scaleZ/10);
             testEnemy->addComponent(new BackAndForthBehaviour(testEnemy->position, testEnemy->position + glm::vec3((row%2) * 0.3f, 3, (col%3) * 0.3f), (row%3)*0.2f + col%3 * 0.3f), &game);
             testEnemy->addComponent(new EnemyTargetBehaviour(game.player, 5 + (row%3) * 0.3f - (col%2) * 0.2f), &game);
@@ -243,7 +239,6 @@ void spawnMap(Game &game, float scaleX, float scaleZ, int row, int col) {
             break;
         }
         case 5:{
-            println("spawnMap3");
             GameObject *target = createTarget(game, row * scaleX / 10, 2, col * scaleZ / 10);
             target->addComponent(new BackAndForthBehaviour(target->position, target->position + glm::vec3((row%2) * 0.3f, 1, (col%2) * 0.3f), (row%3)*0.3f + col%3 * 0.4f), &game);
             target->addComponent(new EnemyTargetBehaviour(game.player, 5 - (row%2) * 0.3f + (col%3) * 0.2f), &game);
@@ -283,6 +278,7 @@ int main() {
         game.createRenderInfo(*tank, 2, 3);
         game.createRenderInfo(*tankheadVisual, 3, 3);
         tank->addComponent(new MovementBehaviour(), &game);
+        tank->addComponent(new HealthBehaviour(), &game);
         tankhead->addComponent(new RotationMovementBehaviour(), &game);
         muzzle->addComponent(new ShootBehaviour(), &game);
         muzzle->addComponent(new CamFollowBehaviour(), &game);
@@ -296,13 +292,11 @@ int main() {
         ground->scale = glm::vec3(scaleX,0,scaleZ);
         game.createRenderInfo(*ground, 3, 2);
 
-        println("HERE");
         for(int row{0}; row < 10; row++){
             for(int col{0}; col < 10; col++){
                 spawnMap(game, scaleX, scaleZ, row, col);
             }
         }
-        println("HERE2");
 
         //TEST
 

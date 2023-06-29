@@ -64,7 +64,7 @@ void GameObject::addChild(GameObject* child, bool setParent) {
     if(child == this) throw std::runtime_error("trying to add object as its own child");
     for(auto it{children.begin()}; it != children.end(); ++it){
         if(*it == child){
-            println(child->id + " is already child of " + this->id);
+            //println(child->id + " is already child of " + this->id);
             return;
         }
     }
@@ -84,12 +84,11 @@ void GameObject::removeChild(GameObject* remChild) {
             return;
         }
     }
-    println("could not find");
 }
 
 void GameObject::setParent(GameObject* newparent, bool addChild) {
     if(parent == newparent){
-        println("PARENT ALREADY PARENT");
+        //println("PARENT ALREADY PARENT");
         return;
     }
     if(parent){
@@ -121,8 +120,8 @@ void GameObject::reset(FrameData& frameData) {
     for (int i{0}; i < componentsize; ++i) { components[i]->reset(frameData); }
 }
 
-void GameObject::onHit(FrameData &frameData) {
-    for (int i{0}; i < componentsize; ++i) { components[i]->onHit(frameData); }
+void GameObject::onHit(FrameData &frameData, bool otherIsStatic) {
+    for (int i{0}; i < componentsize; ++i) { components[i]->onHit(frameData, otherIsStatic); }
 }
 
 void GameObject::setRotation(glm::vec3 rot) {this->rotation = glm::eulerAngleXYZ(glm::radians(rot.x), glm::radians(rot.y), glm::radians(rot.z));}
